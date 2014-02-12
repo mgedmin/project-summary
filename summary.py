@@ -143,6 +143,10 @@ row_template = '''\
 '''
 
 
+def link(url, text):
+    return '<a href="{}">{}</a>'.format(escape(url, True), text)
+
+
 def main():
     parser = argparse.ArgumentParser(
             description="Summarize release status of projects in %s" % REPOS)
@@ -175,12 +179,11 @@ def print_html_report(projects):
     print(template.format(
             rows='\n'.join(
                 row_template.format(
-                    name=escape(project.name),
+                    name=link(project.url, project.name),
                     tag=escape(project.last_tag),
                     date=escape(project.last_tag_date),
-                    changes='<a href="%s">%s</a>' % (
-                        escape(project.compare_url),
-                        len(project.pending_commits)),
+                    changes=link(project.compare_url,
+                        '{} commits'.format(len(project.pending_commits))),
                 ) for project in projects),
         ))
 
