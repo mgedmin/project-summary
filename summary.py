@@ -6,6 +6,11 @@ Generate a summary for all my projects.
 import glob
 import os
 import subprocess
+import argparse
+
+
+__author__ = 'Marius Gedminas <marius@gedmin.as>'
+__version__ = '0.1'
 
 
 #
@@ -97,10 +102,22 @@ def get_projects():
 
 
 def main():
+    parser = argparse.ArgumentParser(
+            description="Summarize release status of projects in %s" % REPOS)
+    parser.add_argument('--version', action='version',
+                        version="%(prog)s version " + __version__)
+    parser.add_argument('-v', '--verbose', action='count',
+                        help='be more verbose (can be repeated)')
+    args = parser.parse_args()
     for project in get_projects():
         print("{name:20} {commits:4} commits since {release:6} ({date})".format(
             name=project.name, commits=len(project.pending_commits),
             release=project.last_tag, date=project.last_tag_date))
+        if args.verbose:
+            print("  {}".format(project.compare_url))
+            if args.verbose > 1:
+                print("  {}".format(project.working_tree))
+            print("")
 
 
 if __name__ == '__main__':
