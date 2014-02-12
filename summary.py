@@ -7,10 +7,11 @@ import glob
 import os
 import subprocess
 import argparse
+from cgi import escape
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.1'
+__version__ = '0.2'
 
 
 #
@@ -101,6 +102,47 @@ def get_projects():
         yield Project.from_working_tree(path)
 
 
+#
+# Report generation
+#
+
+template = '''\
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Projects</title>
+    <link rel="stylesheet" type="text/css" src="style.css" />
+  </head>
+  <body>
+    <h1>Projects</h1>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Last release</th>
+          <th>Date</th>
+          <th>Pending changes</th>
+        </tr>
+      </thead>
+      <tbody>
+{rows}
+      </tbody>
+    </table>
+  </body>
+</html>
+'''
+
+
+row_template = '''\
+        <tr>
+          <td>{name}</td>
+          <td>{tag}</td>
+          <td>{date}</td>
+          <td>{changes}</td>
+        </tr>
+'''
+
+
 def main():
     parser = argparse.ArgumentParser(
             description="Summarize release status of projects in %s" % REPOS)
@@ -108,16 +150,39 @@ def main():
                         version="%(prog)s version " + __version__)
     parser.add_argument('-v', '--verbose', action='count',
                         help='be more verbose (can be repeated)')
+    parser.add_argument('--html', action='store_true',
+                        help='produce HTML output')
     args = parser.parse_args()
-    for project in get_projects():
+    if args.html:
+        print_html_report(get_projects())
+    else:
+        print_report(get_projects(), args.verbose)
+
+
+def print_report(projects, verbose):
+    for project in projects:
         print("{name:20} {commits:4} commits since {release:6} ({date})".format(
             name=project.name, commits=len(project.pending_commits),
             release=project.last_tag, date=project.last_tag_date))
-        if args.verbose:
+        if verbose:
             print("  {}".format(project.compare_url))
-            if args.verbose > 1:
+            if verbose > 1:
                 print("  {}".format(project.working_tree))
             print("")
+
+
+def print_html_report(projects):
+    print(template.format(
+            rows='\n'.join(
+                row_template.format(
+                    name=escape(project.name),
+                    tag=escape(project.last_tag),
+                    date=escape(project.last_tag_date),
+                    changes='<a href="%s">%s</a>' % (
+                        escape(project.compare_url),
+                        len(project.pending_commits)),
+                ) for project in projects),
+        ))
 
 
 if __name__ == '__main__':
