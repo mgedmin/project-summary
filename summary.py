@@ -16,7 +16,7 @@ except ImportError:
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.3'
+__version__ = '0.4'
 
 
 #
@@ -112,27 +112,43 @@ def get_projects():
 #
 
 template = '''\
-<html>
+<!DOCTYPE html>
+<html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <title>Projects</title>
-    <link rel="stylesheet" type="text/css" src="style.css" />
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>{title}</title>
+
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/bootstrap-theme.min.css">
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
   </head>
-  <body>
-    <h1>Projects</h1>
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Last release</th>
-          <th>Date</th>
-          <th>Pending changes</th>
-        </tr>
-      </thead>
-      <tbody>
+  <body role="document">
+    <div class="container">
+      <div class="page-header">
+        <h1>{title}</h1>
+      </div>
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Last release</th>
+            <th>Date</th>
+            <th>Pending changes</th>
+          </tr>
+        </thead>
+        <tbody>
 {rows}
-      </tbody>
-    </table>
+        </tbody>
+      </table>
+    </div>
   </body>
 </html>
 '''
@@ -188,6 +204,7 @@ def print_report(projects, verbose):
 
 def print_html_report(projects):
     print(template.format(
+            title='Projects',
             rows='\n'.join(
                 row_template.format(
                     name=link(project.url, project.name),
