@@ -9,9 +9,14 @@ import subprocess
 import argparse
 from cgi import escape
 
+try:
+    import arrow
+except ImportError:
+    arrow = None
+
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.2'
+__version__ = '0.3'
 
 
 #
@@ -137,10 +142,16 @@ row_template = '''\
         <tr>
           <td>{name}</td>
           <td>{tag}</td>
-          <td>{date}</td>
+          <td title="{full_date}">{date}</td>
           <td>{changes}</td>
         </tr>
 '''
+
+
+def nice_date(date_string):
+    if not arrow:
+        return date_string
+    return arrow.get(date_string).humanize()
 
 
 def link(url, text):
@@ -167,7 +178,7 @@ def print_report(projects, verbose):
     for project in projects:
         print("{name:20} {commits:4} commits since {release:6} ({date})".format(
             name=project.name, commits=len(project.pending_commits),
-            release=project.last_tag, date=project.last_tag_date))
+            release=project.last_tag, date=nice_date(project.last_tag_date)))
         if verbose:
             print("  {}".format(project.compare_url))
             if verbose > 1:
@@ -181,7 +192,8 @@ def print_html_report(projects):
                 row_template.format(
                     name=link(project.url, project.name),
                     tag=escape(project.last_tag),
-                    date=escape(project.last_tag_date),
+                    date=escape(nice_date(project.last_tag_date)),
+                    full_date=escape(project.last_tag_date),
                     changes=link(project.compare_url,
                         '{} commits'.format(len(project.pending_commits))),
                 ) for project in projects),
