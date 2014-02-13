@@ -202,6 +202,12 @@ def image(url, alt):
     return '<img src="{}" alt="{}">'.format(escape(url, True), alt)
 
 
+def pluralize(number, noun):
+    if number == 1:
+        noun = noun[:-1]  # poor Englishman's i18n
+    return '{} {}'.format(number, noun)
+
+
 def main():
     parser = argparse.ArgumentParser(
             description="Summarize release status of projects in %s" % REPOS)
@@ -242,7 +248,8 @@ def print_html_report(projects):
                     build_status=link(project.travis_url,
                         image(project.travis_image_url, 'Build Status')),
                     changes=link(project.compare_url,
-                        '{} commits'.format(len(project.pending_commits))),
+                        escape(pluralize(len(project.pending_commits),
+                                         'commits'))),
                 ) for project in projects),
         ))
 
