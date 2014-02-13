@@ -111,8 +111,12 @@ class Project(object):
 
     @property
     def travis_image_url(self):
-        return 'https://travis-ci.org/{owner}/{name}.png?branch=master'.format(
-                    name=self.name, owner=self.owner)
+        # Travis has 19px-high PNG images
+        template = 'https://travis-ci.org/{owner}/{name}.png?branch=master'
+        # Shields.io give me 18px-high SVG and PNG images that look better,
+        # but are slower or even fail to load (rate limiting?)
+        ## template = '//img.shields.io/travis/{owner}/{name}/master.svg'
+        return template.format(name=self.name, owner=self.owner)
 
     @property
     def travis_url(self):
