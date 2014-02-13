@@ -40,7 +40,7 @@ How I have it set up:
 - created /var/www/projects.gedmin.as/
 - downloaded bootstrap-3.1.0-dist.zip from http://getbootstrap.com
 - unzipped it and moved the `css`, `fonts` and `js` subdirectories under
-  /var/www/debesis.gedmin.as/projects/
+  /var/www/projects.gedmin.as/
 - set up Apache to serve /var/www/projects.gedmin.as at
   http://projects.gedmin.as/
 
