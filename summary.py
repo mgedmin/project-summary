@@ -241,7 +241,7 @@ def print_html_report(projects):
             title='Projects',
             rows='\n'.join(
                 row_template.format(
-                    name=link(project.url, project.name),
+                    name=link(project.url, escape(project.name)),
                     tag=escape(project.last_tag),
                     date=escape(nice_date(project.last_tag_date)),
                     full_date=escape(project.last_tag_date),
