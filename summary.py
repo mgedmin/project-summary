@@ -16,7 +16,7 @@ except ImportError:
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.4'
+__version__ = '0.5'
 
 
 #
@@ -56,6 +56,10 @@ def normalize_github_url(url):
     return url
 
 
+def get_project_owner(url):
+    return url.rpartition('/')[0].rpartition('/')[-1]
+
+
 def get_project_name(url):
     return url.rpartition('/')[-1]
 
@@ -93,6 +97,10 @@ class Project(object):
         return cls(working_tree, url, last_tag, last_tag_date, pending_commits)
 
     @property
+    def owner(self):
+        return get_project_owner(self.url)
+
+    @property
     def name(self):
         return get_project_name(self.url)
 
@@ -100,6 +108,16 @@ class Project(object):
     def compare_url(self):
         return '{base}/compare/{tag}...master'.format(base=self.url,
                                                       tag=self.last_tag)
+
+    @property
+    def travis_image_url(self):
+        return 'https://travis-ci.org/{owner}/{name}.png?branch=master'.format(
+                    name=self.name, owner=self.owner)
+
+    @property
+    def travis_url(self):
+        return 'https://travis-ci.org/{owner}/{name}'.format(
+                    name=self.name, owner=self.owner)
 
 
 def get_projects():
@@ -124,6 +142,10 @@ template = '''\
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <link rel="stylesheet" href="css/bootstrap-theme.min.css">
 
+    <style type="text/css">
+      td > a > img {{ position: relative; top: -2px; }}
+    </style>
+
     <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
       <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
@@ -142,6 +164,7 @@ template = '''\
             <th>Last release</th>
             <th>Date</th>
             <th>Pending changes</th>
+            <th>Build status</th>
           </tr>
         </thead>
         <tbody>
@@ -160,6 +183,7 @@ row_template = '''\
           <td>{tag}</td>
           <td title="{full_date}">{date}</td>
           <td>{changes}</td>
+          <td>{build_status}</td>
         </tr>
 '''
 
@@ -172,6 +196,10 @@ def nice_date(date_string):
 
 def link(url, text):
     return '<a href="{}">{}</a>'.format(escape(url, True), text)
+
+
+def image(url, alt):
+    return '<img src="{}" alt="{}">'.format(escape(url, True), alt)
 
 
 def main():
@@ -211,6 +239,8 @@ def print_html_report(projects):
                     tag=escape(project.last_tag),
                     date=escape(nice_date(project.last_tag_date)),
                     full_date=escape(project.last_tag_date),
+                    build_status=link(project.travis_url,
+                        image(project.travis_image_url, 'Build Status')),
                     changes=link(project.compare_url,
                         '{} commits'.format(len(project.pending_commits))),
                 ) for project in projects),
