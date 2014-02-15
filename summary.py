@@ -16,7 +16,7 @@ except ImportError:
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.5'
+__version__ = '0.6'
 
 
 #
@@ -176,6 +176,7 @@ template = '''\
         </tbody>
       </table>
     </div>
+{javascript}
   </body>
 </html>
 '''
@@ -189,6 +190,42 @@ row_template = '''\
             <td>{changes}</td>
             <td>{build_status}</td>
           </tr>
+'''
+
+
+javascript = '''\
+    <script src="js/jquery.min.js"></script>
+    <script src="js/jquery.tablesorter.min.js"></script>
+    <script src="js/jquery.tablesorter.widgets.min.js"></script>
+    <script>
+      $(function() {
+        $.extend($.tablesorter.themes.bootstrap, {
+            table      : '',
+            caption    : '',
+            header     : '',
+            footerRow  : '',
+            footerCells: '',
+            icons      : '',
+            sortNone   : '',
+            sortAsc    : 'glyphicon glyphicon-sort-by-attributes',
+            sortDesc   : 'glyphicon glyphicon-sort-by-attributes-alt',
+            active     : '',
+            hover      : 'active',
+            filterRow  : '',
+            even       : '',
+            odd        : ''
+          });
+        $("table").tablesorter({
+          theme: "bootstrap",
+          headerTemplate: '{content} {icon}',
+          widgets: ['uitheme'],
+          widthFixed: true,
+          textExtraction: {
+            2: function(node, table, cellIndex) { return $(node).attr('title'); }
+          }
+        });
+      });
+    </script>
 '''
 
 
@@ -243,6 +280,7 @@ def print_report(projects, verbose):
 def print_html_report(projects):
     print(template.format(
             title='Projects',
+            javascript=javascript,
             rows='\n'.join(
                 row_template.format(
                     name=link(project.url, escape(project.name)),
