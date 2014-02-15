@@ -1,0 +1,23 @@
+{
+  "name": "project-summary",
+  "version": "0.1.0",
+  "homepage": "https://github.com/mgedmin/project-summary",
+  "authors": [
+    "Marius Gedminas <marius@gedmin.as>"
+  ],
+  "description": "summary of my GitHub projects",
+  "license": "MIT",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap": "~3.1.1",
+    "jquery.tablesorter": "~2.14.5",
+    "jquery": "~2.1.0"
+  }
+}
