@@ -20,11 +20,13 @@ Potential problems, avoided:
 - my Jenkins jobs run weekly builds -- not any more, I enabled builds after
   every GH change
 
-How I have it set up:
+Setup:
 
-- cloned this repo into /home/mgedmin/projects on my Jenkins master
+- clone this repo into /home/mgedmin/projects on my Jenkins master
 - cd /home/mgedmin/projects && make
-- created /etc/cron.daily/mg-project-summary, which looks like this::
+- create /var/www/projects.gedmin.as/
+- copy or link assets
+- create /etc/cron.hourly/mg-project-summary, which looks like this::
 
     #!/bin/sh
     DESTDIR=/var/www/projects.gedmin.as/
@@ -37,10 +39,7 @@ How I have it set up:
     fi
     $SCRIPT $ARGS > $REPORT.new && mv $REPORT.new $REPORT
 
-- created /var/www/projects.gedmin.as/
-- downloaded bootstrap-3.1.0-dist.zip from http://getbootstrap.com
-- unzipped it and moved the `css`, `fonts` and `js` subdirectories under
-  /var/www/projects.gedmin.as/
+- run this script to make sure it works
 - set up Apache to serve /var/www/projects.gedmin.as at
   http://projects.gedmin.as/
 
