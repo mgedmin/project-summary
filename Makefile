@@ -26,7 +26,7 @@ css_files = \
 
 js_dirs = \
     bower_components/bootstrap/dist/js/ \
-    bower_components/jquery/dist/js/ \
+    bower_components/jquery/dist/ \
     bower_components/jquery.tablesorter/js/
 
 js_files = \
