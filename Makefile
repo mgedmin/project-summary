@@ -1,4 +1,4 @@
-all: bin/pip bin/summary bin/bower bower_components assets
+all: bin/pip bin/summary assets
 
 bin/summary: setup.py
 	@test -x bin/pip || make bin/pip
