@@ -182,13 +182,13 @@ template = '''\
 
 
 row_template = '''\
-        <tr>
-          <td>{name}</td>
-          <td>{tag}</td>
-          <td title="{full_date}">{date}</td>
-          <td>{changes}</td>
-          <td>{build_status}</td>
-        </tr>
+          <tr>
+            <td>{name}</td>
+            <td>{tag}</td>
+            <td title="{full_date}">{date}</td>
+            <td>{changes}</td>
+            <td>{build_status}</td>
+          </tr>
 '''
 
 
