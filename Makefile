@@ -42,7 +42,7 @@ test:
 	ls -d $(css_files)
 
 assets:
-	@test -d bower_comonents || make bower_components
+	@test -d bower_components || make bower_components
 	mkdir -p assets/css assets/js assets/fonts
 	cp $(css_files) assets/css/
 	cp $(js_files) assets/js/
