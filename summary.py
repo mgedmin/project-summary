@@ -165,6 +165,9 @@ template = '''\
     <style type="text/css">
       td > a > img {{ position: relative; top: -2px; }}
       .tablesorter-icon {{ color: #ddd; }}
+      th:nth-child(3), td:nth-child(3) {{ text-align: right; }}
+      th:nth-child(4), td:nth-child(4) {{ text-align: right; }}
+      th:nth-child(5), td:nth-child(5) {{ text-align: right; }}
     </style>
 
     <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
@@ -234,7 +237,6 @@ javascript = '''\
           });
         $("table").tablesorter({
           theme: "bootstrap",
-          headerTemplate: '{content} {icon}',
           widgets: ['uitheme'],
           widthFixed: true,
           textExtraction: {
