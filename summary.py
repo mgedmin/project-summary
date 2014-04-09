@@ -164,6 +164,7 @@ template = '''\
 
     <style type="text/css">
       td > a > img {{ position: relative; top: -2px; }}
+      .tablesorter-icon {{ color: #ddd; }}
     </style>
 
     <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
