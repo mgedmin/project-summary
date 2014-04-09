@@ -8,7 +8,7 @@ changes and it's time to make a release.
 
 This is a script to help:
 
-- it runs from cron every hour
+- it runs as a Jenkins job every hour
 - re-uses my Jenkins workspaces to get git clones of the projects
   (they're in /var/lib/jenkins/jobs/\*/workspace)
 - finds the latest tag in each Git repo (git describe --tags --abbrev=0)
@@ -22,24 +22,11 @@ Potential problems, avoided:
 
 Setup:
 
-- clone this repo into /home/mgedmin/projects on my Jenkins master
-- cd /home/mgedmin/projects && make
+- set up a Jenkins job to build this hourly
+  (make && bin/summary --html > index.html)
 - create /var/www/projects.gedmin.as/
-- copy or link assets
-- create /etc/cron.hourly/mg-project-summary, which looks like this::
-
-    #!/bin/sh
-    DESTDIR=/var/www/projects.gedmin.as/
-    REPORT=$DESTDIR/index.html
-    SCRIPT=/home/mgedmin/projects/bin/summary
-    ARGS=--html
-
-    if ! test -d $DESTDIR; then
-        mkdir -p $DESTDIR
-    fi
-    $SCRIPT $ARGS > $REPORT.new && mv $REPORT.new $REPORT
-
-- run this script to make sure it works
+- symlink /var/lib/jenkins/jobs/project-summary/assets and index.html
+  into /var/www/projects.gedmin.as/
 - set up Apache to serve /var/www/projects.gedmin.as at
   http://projects.gedmin.as/
 
