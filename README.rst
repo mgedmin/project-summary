@@ -8,7 +8,7 @@ changes and it's time to make a release.
 
 This is a script to help:
 
-- it runs from cron every night
+- it runs from cron every hour
 - re-uses my Jenkins workspaces to get git clones of the projects
   (they're in /var/lib/jenkins/jobs/\*/workspace)
 - finds the latest tag in each Git repo (git describe --tags --abbrev=0)
