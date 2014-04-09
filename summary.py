@@ -163,7 +163,7 @@ template = '''\
     <link rel="stylesheet" href="assets/css/bootstrap-theme.min.css">
 
     <style type="text/css">
-      td > a > img {{ position: relative; top: -2px; }}
+      td > a > img {{ position: relative; top: -1px; }}
       .tablesorter-icon {{ color: #ddd; }}
       th:nth-child(3), td:nth-child(3) {{ text-align: right; }}
       th:nth-child(4), td:nth-child(4) {{ text-align: right; }}
