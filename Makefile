@@ -1,19 +1,19 @@
 all: bin/pip bin/summary assets
 
-bin/summary: setup.py
-	@test -x bin/pip || make bin/pip
+bin/summary: setup.py | bin/pip
 	bin/pip install -e .
 
 bin/pip:
 	virtualenv .
 
-bin/bower:
-	@mkdir -p bin
-	npm install bower
-	ln -s ../node_modules/.bin/bower bin/bower
+bin:
+	mkdir bin
 
-bower_components: bower.json
-	@test -x bin/bower || make bin/bower
+bin/bower: | bin
+	npm install bower
+	ln -sf ../node_modules/.bin/bower bin/bower
+
+bower_components: bower.json | bin/bower
 	bin/bower install
 	@touch -c $@
 
@@ -38,11 +38,7 @@ font_dirs = \
 font_files = \
     $(foreach dir,$(font_dirs),$(wildcard $(dir)/*.ttf) $(wildcard $(dir)/*.svg) $(wildcard $(dir)/*.eot) $(wildcard $(dir)/*.woff))
 
-test:
-	ls -d $(css_files)
-
-assets:
-	@test -d bower_components || make bower_components
+assets: | bower_components
 	mkdir -p assets/css assets/js assets/fonts
 	cp $(css_files) assets/css/
 	cp $(js_files) assets/js/
