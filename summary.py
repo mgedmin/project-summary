@@ -146,8 +146,8 @@ template = '''\
 
     <title>{title}</title>
 
-    <link rel="stylesheet" href="css/bootstrap.min.css">
-    <link rel="stylesheet" href="css/bootstrap-theme.min.css">
+    <link rel="stylesheet" href="assets/css/bootstrap.min.css">
+    <link rel="stylesheet" href="assets/css/bootstrap-theme.min.css">
 
     <style type="text/css">
       td > a > img {{ position: relative; top: -2px; }}
@@ -197,9 +197,9 @@ row_template = '''\
 
 
 javascript = '''\
-    <script src="js/jquery.min.js"></script>
-    <script src="js/jquery.tablesorter.min.js"></script>
-    <script src="js/jquery.tablesorter.widgets.min.js"></script>
+    <script src="assets/js/jquery.min.js"></script>
+    <script src="assets/js/jquery.tablesorter.min.js"></script>
+    <script src="assets/js/jquery.tablesorter.widgets.min.js"></script>
     <script>
       $(function() {
         $.extend($.tablesorter.themes.bootstrap, {
