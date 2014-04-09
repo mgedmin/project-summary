@@ -24,6 +24,7 @@ __version__ = '0.6'
 #
 
 REPOS = '/var/lib/jenkins/jobs/*/workspace'
+IGNORE = ['project-summary']
 
 
 #
@@ -126,7 +127,9 @@ class Project(object):
 
 def get_projects():
     for path in get_repos():
-        yield Project.from_working_tree(path)
+        p = Project.from_working_tree(path)
+        if p.name not in IGNORE:
+            yield p
 
 
 #
