@@ -168,6 +168,7 @@ template = '''\
       th:nth-child(3), td:nth-child(3) {{ text-align: right; }}
       th:nth-child(4), td:nth-child(4) {{ text-align: right; }}
       th:nth-child(5), td:nth-child(5) {{ text-align: right; }}
+      footer {{ padding-top: 40px; text-align: center; color: #999; }}
     </style>
 
     <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
@@ -196,6 +197,12 @@ template = '''\
         </tbody>
       </table>
     </div>
+    <footer>
+      <div class="container">
+        An incomplete list of FOSS projects maintained by <a href="https://github.com/mgedmin">@mgedmin</a>.
+        Updated hourly by a <a href="https://jenkins.gedmin.as/job/project-summary/">Jenkins job</a>.
+      </div>
+    </footer>
 {javascript}
   </body>
 </html>
