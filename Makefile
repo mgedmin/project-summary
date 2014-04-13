@@ -1,4 +1,4 @@
-all: bin/pip bin/summary assets
+all: bin/pip bin/summary
 
 bin/summary: setup.py | bin/pip
 	bin/pip install -e .
@@ -38,7 +38,7 @@ font_dirs = \
 font_files = \
     $(foreach dir,$(font_dirs),$(wildcard $(dir)/*.ttf) $(wildcard $(dir)/*.svg) $(wildcard $(dir)/*.eot) $(wildcard $(dir)/*.woff))
 
-assets: | bower_components
+update-assets: bower_components
 	mkdir -p assets/css assets/js assets/fonts
 	cp $(css_files) assets/css/
 	cp $(js_files) assets/js/
