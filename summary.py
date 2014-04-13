@@ -16,7 +16,7 @@ except ImportError:
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.6'
+__version__ = '0.6.1'
 
 
 #
@@ -24,7 +24,7 @@ __version__ = '0.6'
 #
 
 REPOS = '/var/lib/jenkins/jobs/*/workspace'
-IGNORE = ['project-summary']
+IGNORE = []
 
 
 #
@@ -77,7 +77,7 @@ def get_project_name(url):
 
 def get_last_tag(repo_path):
     return pipe("git", "describe", "--tags", "--abbrev=0",
-                cwd=repo_path).strip()
+                cwd=repo_path, stderr=subprocess.PIPE).strip()
 
 
 def get_date_of_tag(repo_path, tag):
@@ -141,7 +141,7 @@ class Project(object):
 def get_projects():
     for path in get_repos():
         p = Project(path)
-        if p.name not in IGNORE:
+        if p.name not in IGNORE and p.last_tag:
             yield p
 
 
