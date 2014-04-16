@@ -33,7 +33,7 @@ IGNORE = []
 
 def pipe(*cmd, **kwargs):
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, **kwargs)
-    return p.communicate()[0]
+    return p.communicate()[0].decode('UTF-8', 'replace')
 
 
 class reify(object):

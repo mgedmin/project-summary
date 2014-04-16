@@ -28,7 +28,7 @@ setup(
         'License :: OSI Approved :: GNU General Public License (GPL)',
         'Operating System :: POSIX',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.2', # might work
+        'Programming Language :: Python :: 3.2',
         'Programming Language :: Python :: 3.3',
         'Private :: Do Not Upload To PyPI', # it rejects unknown classifiers ;)
     ],
