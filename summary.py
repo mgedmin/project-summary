@@ -165,6 +165,7 @@ template = '''\
     <style type="text/css">
       td > a > img {{ position: relative; top: -1px; }}
       .tablesorter-icon {{ color: #ddd; }}
+      .tablesorter-header {{ cursor: default; }}
       th:nth-child(3), td:nth-child(3) {{ text-align: right; }}
       th:nth-child(4), td:nth-child(4) {{ text-align: right; }}
       th:nth-child(5), td:nth-child(5) {{ text-align: right; }}
