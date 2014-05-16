@@ -134,8 +134,8 @@ class Project(object):
 
     @property
     def travis_url(self):
-        return 'https://travis-ci.org/{owner}/{name}'.format(
-                    name=self.name, owner=self.owner)
+        return 'https://travis-ci.org/{owner}/{name}'.format(name=self.name,
+                                                             owner=self.owner)
 
 
 def get_projects():
@@ -279,7 +279,7 @@ def pluralize(number, noun):
 
 def main():
     parser = argparse.ArgumentParser(
-            description="Summarize release status of projects in %s" % REPOS)
+        description="Summarize release status of projects in %s" % REPOS)
     parser.add_argument('--version', action='version',
                         version="%(prog)s version " + __version__)
     parser.add_argument('-v', '--verbose', action='count',
@@ -307,21 +307,21 @@ def print_report(projects, verbose):
 
 def print_html_report(projects):
     print(template.format(
-            title='Projects',
-            javascript=javascript,
-            rows='\n'.join(
-                row_template.format(
-                    name=link(project.url, escape(project.name)),
-                    tag=escape(project.last_tag),
-                    date=escape(nice_date(project.last_tag_date)),
-                    full_date=escape(project.last_tag_date),
-                    build_status=link(project.travis_url,
-                        image(project.travis_image_url, 'Build Status')),
-                    changes=link(project.compare_url,
-                        escape(pluralize(len(project.pending_commits),
-                                         'commits'))),
-                ) for project in projects),
-        ))
+        title='Projects',
+        javascript=javascript,
+        rows='\n'.join(
+            row_template.format(
+                name=link(project.url, escape(project.name)),
+                tag=escape(project.last_tag),
+                date=escape(nice_date(project.last_tag_date)),
+                full_date=escape(project.last_tag_date),
+                build_status=link(project.travis_url,
+                                  image(project.travis_image_url, 'Build Status')),
+                changes=link(project.compare_url,
+                             escape(pluralize(len(project.pending_commits),
+                                              'commits'))),
+            ) for project in projects),
+    ))
 
 
 if __name__ == '__main__':
