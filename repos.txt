@@ -1,0 +1,21 @@
+# This file lists glob patterns for project checkouts.
+# Missing directories or non-Git checkouts are ignored (silently).
+
+# Configuration for debesis.gedmin.as (production)
+/var/lib/jenkins/jobs/*/workspace
+
+# Configuration for my machine (development)
+~/src/check-manifest
+~/src/findimports
+~/src/gtimelog
+~/src/imgdiff
+~/src/irclog2html
+~/src/mgp2pdf
+~/src/objgraph
+~/src/profilehooks
+~/src/pyspacewar
+~/src/restview
+~/src/zodbbrowser
+
+# Total overkill but fun for stress-testing
+##~/src/*

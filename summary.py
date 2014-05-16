@@ -16,14 +16,16 @@ except ImportError:
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.6.1'
+__version__ = '0.7.0'
+
+here = os.path.dirname(__file__)
 
 
 #
 # Configuration
 #
 
-REPOS = '/var/lib/jenkins/jobs/*/workspace'
+REPOS = 'repos.txt'
 IGNORE = []
 
 
@@ -51,8 +53,14 @@ class reify(object):
 #
 
 def get_repos():
-    return sorted(dirname for dirname in glob.glob(REPOS)
-                  if os.path.isdir(os.path.join(dirname, '.git')))
+    with open(os.path.join(here, REPOS)) as f:
+        paths = (line.strip() for line in f
+                 if line.strip() and not line.lstrip().startswith('#'))
+        return sorted(
+            dirname
+            for path in paths
+            for dirname in glob.glob(os.path.expanduser(path))
+            if os.path.isdir(os.path.join(dirname, '.git')))
 
 
 def get_repo_url(repo_path):
