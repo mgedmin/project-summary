@@ -199,7 +199,7 @@ template = '''\
       #release-status th:nth-child(3), #release-status td:nth-child(3) {{ text-align: right; }}
       #release-status th:nth-child(4), #release-status td:nth-child(4) {{ text-align: right; }}
       #release-status th:nth-child(5), #release-status td:nth-child(5) {{ text-align: right; }}
-      footer {{ padding-top: 40px; padding-bottom: 20px; text-align: center; color: #999; }}
+      footer {{ padding-top: 16px; padding-bottom: 20px; text-align: center; color: #999; }}
     </style>
 
     <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
