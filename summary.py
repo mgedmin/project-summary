@@ -56,10 +56,19 @@ def get_repos():
 
 
 def get_repo_url(repo_path):
-    return pipe("git", "remote", "-v", cwd=repo_path).splitlines()[0].split()[1]
+    try:
+        return pipe("git", "ls-remote", "--get-url", "origin", cwd=repo_path).strip()
+    except IndexError:
+        return None
 
 
 def normalize_github_url(url):
+    if not url:
+        return url
+    if url.startswith('git://github.com/'):
+        url = 'https://github.com/' + url[len('git://github.com/'):]
+    elif url.startswith('git@github.com:'):
+        url = 'https://github.com/' + url[len('git@github.com:'):]
     if not url.startswith('https://github.com/'):
         return url
     if url.endswith('.git'):
@@ -99,6 +108,20 @@ class Project(object):
         return normalize_github_url(get_repo_url(self.working_tree))
 
     @reify
+    def is_on_github(self):
+        return self.url.startswith('https://github.com/')
+
+    @reify
+    def uses_travis(self):
+        if not self.is_on_github:
+            return False
+        return os.path.exists(os.path.join(self.working_tree, '.travis.yml'))
+
+    @property
+    def uses_jenkins(self):
+        return self.owner in ('mgedmin', 'gtimelog')
+
+    @reify
     def last_tag(self):
         return get_last_tag(self.working_tree)
 
@@ -112,19 +135,29 @@ class Project(object):
 
     @property
     def owner(self):
-        return get_project_owner(self.url)
+        if self.is_on_github:
+            return get_project_owner(self.url)
+        else:
+            return None
 
     @property
     def name(self):
-        return get_project_name(self.url)
+        if self.url:
+            return get_project_name(self.url)
+        else:
+            return os.path.basename(self.working_tree)
 
     @property
     def compare_url(self):
+        if not self.is_on_github:
+            return None
         return '{base}/compare/{tag}...master'.format(base=self.url,
                                                       tag=self.last_tag)
 
     @property
     def travis_image_url(self):
+        if not self.uses_travis:
+            return None
         # Travis has 19px-high PNG images and 18px-high SVG images
         template = 'https://api.travis-ci.org/{owner}/{name}.svg?branch=master'
         # Shields.io give me 18px-high SVG and PNG images that look better,
@@ -134,11 +167,15 @@ class Project(object):
 
     @property
     def travis_url(self):
+        if not self.uses_travis:
+            return None
         return 'https://travis-ci.org/{owner}/{name}'.format(name=self.name,
                                                              owner=self.owner)
 
     @property
     def coveralls_image_url(self):
+        if not self.uses_travis:
+            return None
         # 18px-high PNG
         template = 'https://coveralls.io/repos/{owner}/{name}/badge.png?branch=master'
         # SVG from shields.io (slow/nonfunctional)
@@ -147,24 +184,34 @@ class Project(object):
 
     @property
     def coveralls_url(self):
+        if not self.uses_travis:
+            return None
         return 'https://coveralls.io/r/{owner}/{name}'.format(name=self.name,
                                                               owner=self.owner)
 
     @property
     def jenkins_image_url(self):
+        if not self.uses_jenkins:
+            return None
         return 'https://jenkins.gedmin.as/job/{name}/badge/icon'.format(name=self.name)
 
     @property
     def jenkins_url(self):
+        if not self.uses_jenkins:
+            return None
         return 'https://jenkins.gedmin.as/job/{name}/'.format(name=self.name)
 
     @property
     def jenkins_image_url_windows(self):
+        if not self.uses_jenkins:
+            return None
         job = self.name + '-on-windows'
         return 'https://jenkins.gedmin.as/job/{name}/badge/icon'.format(name=job)
 
     @property
     def jenkins_url_windows(self):
+        if not self.uses_jenkins:
+            return None
         job = self.name + '-on-windows'
         return 'https://jenkins.gedmin.as/job/{name}/'.format(name=job)
 
@@ -343,11 +390,17 @@ def nice_date(date_string):
     return arrow.get(date_string, 'YYYY-MM-DD HH:mm:ss ZZ').humanize()
 
 
-def link(url, text):
+def link(url, text, na=None):
+    if not url:
+        return na if na is not None else text
+    if not url.startswith(('http:', 'https:')):
+        return '<span title="{}">{}</span>'.format(escape(url, True), text)
     return '<a href="{}">{}</a>'.format(escape(url, True), text)
 
 
 def image(url, alt):
+    if not url:
+        return alt
     return '<img src="{}" alt="{}">'.format(escape(url, True), alt)
 
 
@@ -398,7 +451,8 @@ def print_html_report(projects):
                     date=escape(nice_date(project.last_tag_date)),
                     full_date=escape(project.last_tag_date),
                     build_status=link(project.travis_url,
-                                      image(project.travis_image_url, 'Build Status')),
+                                      image(project.travis_image_url, 'Build Status'),
+                                      '-'),
                     changes=link(project.compare_url,
                                  escape(pluralize(len(project.pending_commits),
                                                   'commits'))),
@@ -410,13 +464,17 @@ def print_html_report(projects):
                 maintenance_table_row_template.format(
                     name=link(project.url, escape(project.name)),
                     build_status=link(project.travis_url,
-                                      image(project.travis_image_url, 'Build Status')),
+                                      image(project.travis_image_url, 'Build Status'),
+                                      '-'),
                     jenkins_status=link(project.jenkins_url,
-                                        image(project.jenkins_image_url, 'Jenkins Status')),
+                                        image(project.jenkins_image_url, 'Jenkins Status'),
+                                        '-'),
                     jenkins_windows_status=link(project.jenkins_url_windows,
-                                                image(project.jenkins_image_url_windows, 'Jenkins (Windows)')),
+                                                image(project.jenkins_image_url_windows, 'Jenkins (Windows)'),
+                                                '-'),
                     coveralls_status=link(project.coveralls_url,
-                                          image(project.coveralls_image_url, 'Test Coverage')),
+                                          image(project.coveralls_image_url, 'Test Coverage'),
+                                          '-'),
                 ) for project in projects
             ),
         ),
