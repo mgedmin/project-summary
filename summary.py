@@ -267,7 +267,7 @@ template = '''\
     <div class="container">
       <div class="page-header">
         <div class="btn-group pull-right" role="menu">
-          <a class="btn btn-default" data-toggle="tab" href="#release-status">Release status</a>
+          <a class="btn btn-primary" data-toggle="tab" href="#release-status">Release status</a>
           <a class="btn btn-default" data-toggle="tab" href="#maintenance">Maintenance</a>
         </div>
         <h1>{title}</h1>
@@ -385,6 +385,32 @@ javascript = '''\
           theme: "bootstrap",
           widgets: ['uitheme'],
           widthFixed: true,
+        });
+        var dont_recurse = false;
+        $('a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
+          $(e.target).siblings('.btn-primary').removeClass('btn-primary').addClass('btn-default');
+          $(e.target).removeClass('btn-default').addClass('btn-primary');
+          if (!dont_recurse) {
+            dont_recurse = true;
+            if (history.pushState) {
+              history.pushState(null, null, '#'+$(e.target).attr('href').substr(1));
+            } else {
+              location.hash = '#'+$(e.target).attr('href').substr(1);
+            }
+            dont_recurse = false;
+          }
+        });
+        if (location.hash !== '') {
+          dont_recurse = true;
+          $('a[href="' + location.hash + '"]').tab('show');
+          dont_recurse = false;
+        }
+        $(window).bind('hashchange', function() {
+          if (!dont_recurse) {
+            dont_recurse = true;
+            $('a[href="' + (location.hash || '#release-status') + '"]').tab('show');
+            dont_recurse = false;
+          }
         });
       });
     </script>
