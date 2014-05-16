@@ -137,6 +137,37 @@ class Project(object):
         return 'https://travis-ci.org/{owner}/{name}'.format(name=self.name,
                                                              owner=self.owner)
 
+    @property
+    def coveralls_image_url(self):
+        # 18px-high PNG
+        template = 'https://coveralls.io/repos/{owner}/{name}/badge.png?branch=master'
+        # SVG from shields.io (slow/nonfunctional)
+        ## template = 'https://img.shields.io/coveralls/{owner}/{name}.svg'
+        return template.format(name=self.name, owner=self.owner)
+
+    @property
+    def coveralls_url(self):
+        return 'https://coveralls.io/r/{owner}/{name}'.format(name=self.name,
+                                                              owner=self.owner)
+
+    @property
+    def jenkins_image_url(self):
+        return 'https://jenkins.gedmin.as/job/{name}/badge/icon'.format(name=self.name)
+
+    @property
+    def jenkins_url(self):
+        return 'https://jenkins.gedmin.as/job/{name}/'.format(name=self.name)
+
+    @property
+    def jenkins_image_url_windows(self):
+        job = self.name + '-on-windows'
+        return 'https://jenkins.gedmin.as/job/{name}/badge/icon'.format(name=job)
+
+    @property
+    def jenkins_url_windows(self):
+        job = self.name + '-on-windows'
+        return 'https://jenkins.gedmin.as/job/{name}/'.format(name=job)
+
 
 def get_projects():
     for path in get_repos():
@@ -160,15 +191,14 @@ template = '''\
     <title>{title}</title>
 
     <link rel="stylesheet" href="assets/css/bootstrap.min.css">
-    <link rel="stylesheet" href="assets/css/bootstrap-theme.min.css">
 
     <style type="text/css">
       td > a > img {{ position: relative; top: -1px; }}
       .tablesorter-icon {{ color: #ddd; }}
       .tablesorter-header {{ cursor: default; }}
-      th:nth-child(3), td:nth-child(3) {{ text-align: right; }}
-      th:nth-child(4), td:nth-child(4) {{ text-align: right; }}
-      th:nth-child(5), td:nth-child(5) {{ text-align: right; }}
+      #release-status th:nth-child(3), #release-status td:nth-child(3) {{ text-align: right; }}
+      #release-status th:nth-child(4), #release-status td:nth-child(4) {{ text-align: right; }}
+      #release-status th:nth-child(5), #release-status td:nth-child(5) {{ text-align: right; }}
       footer {{ padding-top: 40px; padding-bottom: 20px; text-align: center; color: #999; }}
     </style>
 
@@ -181,8 +211,33 @@ template = '''\
   <body role="document">
     <div class="container">
       <div class="page-header">
+        <div class="btn-group pull-right" role="menu">
+          <a class="btn btn-default" data-toggle="tab" href="#release-status">Release status</a>
+          <a class="btn btn-default" data-toggle="tab" href="#maintenance">Maintenance</a>
+        </div>
         <h1>{title}</h1>
       </div>
+      <div class="tab-content">
+        <div class="tab-pane active" id="release-status">
+          {release_status_table}
+        </div>
+        <div class="tab-pane" id="maintenance">
+          {maintenance_table}
+        </div>
+    </div>
+    <footer>
+      <div class="container">
+        An incomplete list of FOSS projects maintained by <a href="https://github.com/mgedmin">@mgedmin</a>.
+        Updated hourly by a <a href="https://jenkins.gedmin.as/job/project-summary/">Jenkins job</a>.
+      </div>
+    </footer>
+{javascript}
+  </body>
+</html>
+'''
+
+
+release_status_table_template = '''\
       <table class="table table-hover">
         <thead>
           <tr>
@@ -197,20 +252,10 @@ template = '''\
 {rows}
         </tbody>
       </table>
-    </div>
-    <footer>
-      <div class="container">
-        An incomplete list of FOSS projects maintained by <a href="https://github.com/mgedmin">@mgedmin</a>.
-        Updated hourly by a <a href="https://jenkins.gedmin.as/job/project-summary/">Jenkins job</a>.
-      </div>
-    </footer>
-{javascript}
-  </body>
-</html>
 '''
 
 
-row_template = '''\
+release_status_row_template = '''\
           <tr>
             <td>{name}</td>
             <td>{tag}</td>
@@ -221,10 +266,40 @@ row_template = '''\
 '''
 
 
+maintenance_table_template = '''\
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Travis CI</th>
+            <th>Jenkins (Linux)</th>
+            <th>Jenkins (Windows)</th>
+            <th>Coveralls</th>
+          </tr>
+        </thead>
+        <tbody>
+{rows}
+        </tbody>
+      </table>
+'''
+
+
+maintenance_table_row_template = '''\
+          <tr>
+            <td>{name}</td>
+            <td>{build_status}</td>
+            <td>{jenkins_status}</td>
+            <td>{jenkins_windows_status}</td>
+            <td>{coveralls_status}</td>
+          </tr>
+'''
+
+
 javascript = '''\
     <script src="assets/js/jquery.min.js"></script>
     <script src="assets/js/jquery.tablesorter.min.js"></script>
     <script src="assets/js/jquery.tablesorter.widgets.min.js"></script>
+    <script src="assets/js/bootstrap.min.js"></script>
     <script>
       $(function() {
         $.extend($.tablesorter.themes.bootstrap, {
@@ -243,13 +318,18 @@ javascript = '''\
             even       : '',
             odd        : ''
           });
-        $("table").tablesorter({
+        $("#release-status table").tablesorter({
           theme: "bootstrap",
           widgets: ['uitheme'],
           widthFixed: true,
           textExtraction: {
             2: function(node, table, cellIndex) { return $(node).attr('title'); }
           }
+        });
+        $("#maintenance table").tablesorter({
+          theme: "bootstrap",
+          widgets: ['uitheme'],
+          widthFixed: true,
         });
       });
     </script>
@@ -306,21 +386,40 @@ def print_report(projects, verbose):
 
 
 def print_html_report(projects):
+    projects = list(projects)
     print(template.format(
         title='Projects',
         javascript=javascript,
-        rows='\n'.join(
-            row_template.format(
-                name=link(project.url, escape(project.name)),
-                tag=escape(project.last_tag),
-                date=escape(nice_date(project.last_tag_date)),
-                full_date=escape(project.last_tag_date),
-                build_status=link(project.travis_url,
-                                  image(project.travis_image_url, 'Build Status')),
-                changes=link(project.compare_url,
-                             escape(pluralize(len(project.pending_commits),
-                                              'commits'))),
-            ) for project in projects),
+        release_status_table=release_status_table_template.format(
+            rows='\n'.join(
+                release_status_row_template.format(
+                    name=link(project.url, escape(project.name)),
+                    tag=escape(project.last_tag),
+                    date=escape(nice_date(project.last_tag_date)),
+                    full_date=escape(project.last_tag_date),
+                    build_status=link(project.travis_url,
+                                      image(project.travis_image_url, 'Build Status')),
+                    changes=link(project.compare_url,
+                                 escape(pluralize(len(project.pending_commits),
+                                                  'commits'))),
+                ) for project in projects
+            ),
+        ),
+        maintenance_table=maintenance_table_template.format(
+            rows='\n'.join(
+                maintenance_table_row_template.format(
+                    name=link(project.url, escape(project.name)),
+                    build_status=link(project.travis_url,
+                                      image(project.travis_image_url, 'Build Status')),
+                    jenkins_status=link(project.jenkins_url,
+                                        image(project.jenkins_image_url, 'Jenkins Status')),
+                    jenkins_windows_status=link(project.jenkins_url_windows,
+                                                image(project.jenkins_image_url_windows, 'Jenkins (Windows)')),
+                    coveralls_status=link(project.coveralls_url,
+                                          image(project.coveralls_image_url, 'Test Coverage')),
+                ) for project in projects
+            ),
+        ),
     ))
 
 
