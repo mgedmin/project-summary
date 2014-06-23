@@ -279,6 +279,7 @@ template = '''\
         <div class="tab-pane" id="maintenance">
           {maintenance_table}
         </div>
+      </div>
     </div>
     <footer>
       <div class="container">
