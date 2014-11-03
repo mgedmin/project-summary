@@ -294,6 +294,7 @@ template = '''\
         <div class="btn-group pull-right" role="menu">
           <a class="btn btn-primary" data-toggle="tab" href="#release-status">Release status</a>
           <a class="btn btn-default" data-toggle="tab" href="#maintenance">Maintenance</a>
+          <a class="btn btn-default" data-toggle="tab" href="#python-versions">Python versions</a>
         </div>
         <h1>{title}</h1>
       </div>
@@ -303,6 +304,9 @@ template = '''\
         </div>
         <div class="tab-pane" id="maintenance">
           {maintenance_table}
+        </div>
+        <div class="tab-pane" id="python-versions">
+          {python_versions_table}
         </div>
       </div>
     </div>
@@ -376,6 +380,47 @@ maintenance_table_row_template = '''\
 '''
 
 
+python_versions_table_template = '''\
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>2.4</th>
+            <th>2.5</th>
+            <th>2.6</th>
+            <th>2.7</th>
+            <th>3.0</th>
+            <th>3.1</th>
+            <th>3.2</th>
+            <th>3.3</th>
+            <th>3.4</th>
+            <th>PyPy</th>
+          </tr>
+        </thead>
+        <tbody>
+{rows}
+        </tbody>
+      </table>
+'''
+
+
+python_versions_table_row_template = '''\
+          <tr>
+            <td>{name}</td>
+            <td>{py24}</td>
+            <td>{py25}</td>
+            <td>{py26}</td>
+            <td>{py27}</td>
+            <td>{py30}</td>
+            <td>{py31}</td>
+            <td>{py32}</td>
+            <td>{py33}</td>
+            <td>{py34}</td>
+            <td>{pypy}</td>
+          </tr>
+'''
+
+
 javascript = '''\
     <script src="assets/js/jquery.min.js"></script>
     <script src="assets/js/jquery.tablesorter.min.js"></script>
@@ -408,6 +453,11 @@ javascript = '''\
           }
         });
         $("#maintenance table").tablesorter({
+          theme: "bootstrap",
+          widgets: ['uitheme'],
+          widthFixed: true,
+        });
+        $("#python-versions table").tablesorter({
           theme: "bootstrap",
           widgets: ['uitheme'],
           widthFixed: true,
@@ -536,6 +586,23 @@ def print_html_report(projects):
                     coveralls_status=link(project.coveralls_url,
                                           image(project.coveralls_image_url, 'Test Coverage'),
                                           '-'),
+                ) for project in projects
+            ),
+        ),
+        python_versions_table=python_versions_table_template.format(
+            rows='\n'.join(
+                python_versions_table_row_template.format(
+                    name=link(project.url, escape(project.name)),
+                    py24='+' if '2.4' in project.python_versions else '-',
+                    py25='+' if '2.5' in project.python_versions else '-',
+                    py26='+' if '2.6' in project.python_versions else '-',
+                    py27='+' if '2.7' in project.python_versions else '-',
+                    py30='+' if '3.0' in project.python_versions else '-',
+                    py31='+' if '3.1' in project.python_versions else '-',
+                    py32='+' if '3.2' in project.python_versions else '-',
+                    py33='+' if '3.3' in project.python_versions else '-',
+                    py34='+' if '3.4' in project.python_versions else '-',
+                    pypy='+' if 'PyPy' in project.python_versions else '-',
                 ) for project in projects
             ),
         ),
