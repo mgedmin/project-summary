@@ -108,6 +108,25 @@ def get_pending_commits(repo_path, last_tag):
                 cwd=repo_path).splitlines()
 
 
+def get_supported_python_versions(repo_path):
+    classifiers = pipe("python", "setup.py", "--classifiers", cwd=repo_path).splitlines()
+    prefix = 'Programming Language :: Python :: '
+    impl_prefix = 'Programming Language :: Python :: Implementation :: '
+    cpython = impl_prefix + 'CPython'
+    return [s[len(prefix):] for s in classifiers if s.startswith(prefix)
+            and s[len(prefix):len(prefix) + 1].isdigit()] + \
+           [s[len(impl_prefix):] for s in classifiers
+            if s.startswith(impl_prefix) and s != cpython]
+
+
+def simplify_python_versions(versions):
+    versions = sorted(versions)
+    if '2' in versions and any(v.startswith('2.') for v in versions):
+        versions.remove('2')
+    if '3' in versions and any(v.startswith('3.') for v in versions):
+        versions.remove('3')
+
+
 class Project(object):
 
     def __init__(self, working_tree):
@@ -224,6 +243,10 @@ class Project(object):
             return None
         job = self.name + '-on-windows'
         return 'https://jenkins.gedmin.as/job/{name}/'.format(name=job)
+
+    @reify
+    def python_versions(self):
+        return get_supported_python_versions(self.working_tree)
 
 
 def get_projects():
@@ -472,6 +495,7 @@ def print_report(projects, verbose):
             print("  {}".format(project.compare_url))
             if verbose > 1:
                 print("  {}".format(project.working_tree))
+            print("  Python versions: {}".format(", ".join(project.python_versions)))
             print("")
 
 
