@@ -407,6 +407,7 @@ template = Template('''\
 % for ver in versions:
                 <th>${ver}</th>
 % endfor
+                <th>Test coverage</th>
               </tr>
             </thead>
             <tbody>
@@ -416,6 +417,7 @@ template = Template('''\
 %     for ver in versions:
                 <td>${'+' if ver in project.python_versions else '-'}</td>
 %     endfor
+                <td><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="Test Coverage"></a></td>
               </tr>
 % endfor
             </tbody>
