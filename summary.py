@@ -7,16 +7,18 @@ import glob
 import os
 import subprocess
 import argparse
+import warnings
 from cgi import escape
 
 try:
     import arrow
 except ImportError:
+    warnings.warn("'arrow' not available, omitting pretty times")
     arrow = None
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.7.0'
+__version__ = '0.8.0dev'
 
 here = os.path.dirname(__file__)
 
