@@ -3,18 +3,17 @@
 Generate a summary for all my projects.
 """
 
+import argparse
 import glob
+import linecache
 import os
 import subprocess
-import argparse
-import warnings
-from cgi import escape
+import sys
+import traceback
 
-try:
-    import arrow
-except ImportError:
-    warnings.warn("'arrow' not available, omitting pretty times")
-    arrow = None
+import arrow
+import mako.template
+import mako.exceptions
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
@@ -257,10 +256,54 @@ def get_projects():
 
 
 #
+# Templating
+#
+
+def mako_error_handler(context, error):
+    """Decorate tracebacks when Mako errors happen.
+
+    Evil hack: walk the traceback frames, find compiled Mako templates,
+    stuff their (transformed) source into linecache.cache.
+
+    https://gist.github.com/mgedmin/4269249
+    """
+    rich_tb = mako.exceptions.RichTraceback()
+    rich_iter = iter(rich_tb.traceback)
+    tb = sys.exc_info()[-1]
+    source = {}
+    annotated = set()
+    while tb is not None:
+        cur_rich = next(rich_iter)
+        f = tb.tb_frame
+        co = f.f_code
+        filename = co.co_filename
+        lineno = tb.tb_lineno
+        if filename.startswith('memory:'):
+            lines = source.get(filename)
+            if lines is None:
+                info = mako.template._get_module_info(filename)
+                lines = source[filename] = info.module_source.splitlines(True)
+                linecache.cache[filename] = (None, None, lines, filename)
+            if (filename, lineno) not in annotated:
+                annotated.add((filename, lineno))
+                extra = '    # {0} line {1} in {2}:\n    # {3}'.format(*cur_rich)
+                lines[lineno - 1] += extra
+        tb = tb.tb_next
+    # Don't return False -- that will lose the actual Mako frame.  Instead
+    # re-raise.
+    raise
+
+
+def Template(*args, **kw):
+    return mako.template.Template(error_handler=mako_error_handler,
+                                  default_filters=['unicode', 'h'],
+                                  *args, **kw)
+
+#
 # Report generation
 #
 
-template = '''\
+template = Template('''\
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -268,18 +311,18 @@ template = '''\
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <title>{title}</title>
+    <title>Projects</title>
 
     <link rel="stylesheet" href="assets/css/bootstrap.min.css">
 
     <style type="text/css">
-      td > a > img {{ position: relative; top: -1px; }}
-      .tablesorter-icon {{ color: #ddd; }}
-      .tablesorter-header {{ cursor: default; }}
-      #release-status th:nth-child(3), #release-status td:nth-child(3) {{ text-align: right; }}
-      #release-status th:nth-child(4), #release-status td:nth-child(4) {{ text-align: right; }}
-      #release-status th:nth-child(5), #release-status td:nth-child(5) {{ text-align: right; }}
-      footer {{ padding-top: 16px; padding-bottom: 20px; text-align: center; color: #999; }}
+      td > a > img { position: relative; top: -1px; }
+      .tablesorter-icon { color: #ddd; }
+      .tablesorter-header { cursor: default; }
+      #release-status th:nth-child(3), #release-status td:nth-child(3) { text-align: right; }
+      #release-status th:nth-child(4), #release-status td:nth-child(4) { text-align: right; }
+      #release-status th:nth-child(5), #release-status td:nth-child(5) { text-align: right; }
+      footer { padding-top: 16px; padding-bottom: 20px; text-align: center; color: #999; }
     </style>
 
     <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
@@ -288,25 +331,95 @@ template = '''\
       <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
     <![endif]-->
   </head>
+
   <body role="document">
     <div class="container">
+
       <div class="page-header">
         <div class="btn-group pull-right" role="menu">
           <a class="btn btn-primary" data-toggle="tab" href="#release-status">Release status</a>
           <a class="btn btn-default" data-toggle="tab" href="#maintenance">Maintenance</a>
           <a class="btn btn-default" data-toggle="tab" href="#python-versions">Python versions</a>
         </div>
-        <h1>{title}</h1>
+        <h1>Projects</h1>
       </div>
+
       <div class="tab-content">
+
         <div class="tab-pane active" id="release-status">
-          {release_status_table}
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Last release</th>
+                <th>Date</th>
+                <th>Pending changes</th>
+                <th>Build status</th>
+              </tr>
+            </thead>
+            <tbody>
+% for project in projects:
+              <tr>
+                <td><a href="${project.url}">${project.name}</a></td>
+                <td>${project.last_tag}</td>
+                <td title="${project.last_tag_date}">${nice_date(project.last_tag_date)}</td>
+                <td><a href="${project.compare_url}">${pluralize(len(project.pending_commits), 'commits')}</a></td>
+                <td><a href="${project.travis_url}"><img src="${project.travis_image_url}" alt="Build Status"></a></td>
+              </tr>
+% endfor
+            </tbody>
+          </table>
         </div>
+
         <div class="tab-pane" id="maintenance">
-          {maintenance_table}
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Travis CI</th>
+                <th>Jenkins (Linux)</th>
+                <th>Jenkins (Windows)</th>
+                <th>Coveralls</th>
+              </tr>
+            </thead>
+            <tbody>
+% for project in projects:
+              <tr>
+                <td><a href="${project.url}">${project.name}</a></td>
+                <td><a href="${project.travis_url}"><img src="${project.travis_image_url}" alt="Build Status"></a></td>
+                <td><a href="${project.jenkins_url}"><img src="${project.jenkins_image_url}" alt="Jenkins Status"></a></td>
+                <td><a href="${project.jenkins_url_windows}"><img src="${project.jenkins_image_url_windows}" alt="Jenkins (Windows)"></a></td>
+                <td><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="Test Coverage"></a></td>
+              </tr>
+% endfor
+            </tbody>
+          </table>
         </div>
+
         <div class="tab-pane" id="python-versions">
-          {python_versions_table}
+          <% versions = ['2.{}'.format(m) for m in range(4, 7+1)] %>
+          <% versions += ['3.{}'.format(m) for m in range(0, 4+1)] %>
+          <% versions += ['PyPy'] %>
+          <table class="table table-hover">
+            <thead>
+              <tr>
+                <th>Name</th>
+% for ver in versions:
+                <th>${ver}</th>
+% endfor
+              </tr>
+            </thead>
+            <tbody>
+% for project in projects:
+              <tr>
+                <td><a href="${project.url}">${project.name}</a></td>
+%     for ver in versions:
+                <td>${'+' if ver in project.python_versions else '-'}</td>
+%     endfor
+              </tr>
+% endfor
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -316,112 +429,6 @@ template = '''\
         Updated hourly by a <a href="https://jenkins.gedmin.as/job/project-summary/">Jenkins job</a>.
       </div>
     </footer>
-{javascript}
-  </body>
-</html>
-'''
-
-
-release_status_table_template = '''\
-      <table class="table table-hover">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Last release</th>
-            <th>Date</th>
-            <th>Pending changes</th>
-            <th>Build status</th>
-          </tr>
-        </thead>
-        <tbody>
-{rows}
-        </tbody>
-      </table>
-'''
-
-
-release_status_row_template = '''\
-          <tr>
-            <td>{name}</td>
-            <td>{tag}</td>
-            <td title="{full_date}">{date}</td>
-            <td>{changes}</td>
-            <td>{build_status}</td>
-          </tr>
-'''
-
-
-maintenance_table_template = '''\
-      <table class="table table-hover">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Travis CI</th>
-            <th>Jenkins (Linux)</th>
-            <th>Jenkins (Windows)</th>
-            <th>Coveralls</th>
-          </tr>
-        </thead>
-        <tbody>
-{rows}
-        </tbody>
-      </table>
-'''
-
-
-maintenance_table_row_template = '''\
-          <tr>
-            <td>{name}</td>
-            <td>{build_status}</td>
-            <td>{jenkins_status}</td>
-            <td>{jenkins_windows_status}</td>
-            <td>{coveralls_status}</td>
-          </tr>
-'''
-
-
-python_versions_table_template = '''\
-      <table class="table table-hover">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>2.4</th>
-            <th>2.5</th>
-            <th>2.6</th>
-            <th>2.7</th>
-            <th>3.0</th>
-            <th>3.1</th>
-            <th>3.2</th>
-            <th>3.3</th>
-            <th>3.4</th>
-            <th>PyPy</th>
-          </tr>
-        </thead>
-        <tbody>
-{rows}
-        </tbody>
-      </table>
-'''
-
-
-python_versions_table_row_template = '''\
-          <tr>
-            <td>{name}</td>
-            <td>{py24}</td>
-            <td>{py25}</td>
-            <td>{py26}</td>
-            <td>{py27}</td>
-            <td>{py30}</td>
-            <td>{py31}</td>
-            <td>{py32}</td>
-            <td>{py33}</td>
-            <td>{py34}</td>
-            <td>{pypy}</td>
-          </tr>
-'''
-
-
-javascript = '''\
     <script src="assets/js/jquery.min.js"></script>
     <script src="assets/js/jquery.tablesorter.min.js"></script>
     <script src="assets/js/jquery.tablesorter.widgets.min.js"></script>
@@ -490,32 +497,19 @@ javascript = '''\
         });
       });
     </script>
-'''
+  </body>
+</html>
+''')
 
 
 def nice_date(date_string):
-    if not arrow:
-        return date_string
     # specify format because https://github.com/crsmithdev/arrow/issues/82
     return arrow.get(date_string, 'YYYY-MM-DD HH:mm:ss ZZ').humanize()
 
 
-def link(url, text, na=None):
-    if not url:
-        return na if na is not None else text
-    if not url.startswith(('http:', 'https:')):
-        return '<span title="{}">{}</span>'.format(escape(url, True), text)
-    return '<a href="{}">{}</a>'.format(escape(url, True), text)
-
-
-def image(url, alt):
-    if not url:
-        return alt
-    return '<img src="{}" alt="{}">'.format(escape(url, True), alt)
-
-
 def pluralize(number, noun):
     if number == 1:
+        assert noun.endswith('s')
         noun = noun[:-1]  # poor Englishman's i18n
     return '{} {}'.format(number, noun)
 
@@ -531,7 +525,13 @@ def main():
                         help='produce HTML output')
     args = parser.parse_args()
     if args.html:
-        print_html_report(get_projects())
+        try:
+            print_html_report(get_projects())
+        except Exception:
+            # if I let CPython print the exception, it'll ignore all of
+            # my extra information stuffed into linecache :/
+            traceback.print_exc()
+            sys.exit(1)
     else:
         print_report(get_projects(), args.verbose)
 
@@ -550,63 +550,9 @@ def print_report(projects, verbose):
 
 
 def print_html_report(projects):
-    projects = list(projects)
-    print(template.format(
-        title='Projects',
-        javascript=javascript,
-        release_status_table=release_status_table_template.format(
-            rows='\n'.join(
-                release_status_row_template.format(
-                    name=link(project.url, escape(project.name)),
-                    tag=escape(project.last_tag),
-                    date=escape(nice_date(project.last_tag_date)),
-                    full_date=escape(project.last_tag_date),
-                    build_status=link(project.travis_url,
-                                      image(project.travis_image_url, 'Build Status'),
-                                      '-'),
-                    changes=link(project.compare_url,
-                                 escape(pluralize(len(project.pending_commits),
-                                                  'commits'))),
-                ) for project in projects
-            ),
-        ),
-        maintenance_table=maintenance_table_template.format(
-            rows='\n'.join(
-                maintenance_table_row_template.format(
-                    name=link(project.url, escape(project.name)),
-                    build_status=link(project.travis_url,
-                                      image(project.travis_image_url, 'Build Status'),
-                                      '-'),
-                    jenkins_status=link(project.jenkins_url,
-                                        image(project.jenkins_image_url, 'Jenkins Status'),
-                                        '-'),
-                    jenkins_windows_status=link(project.jenkins_url_windows,
-                                                image(project.jenkins_image_url_windows, 'Jenkins (Windows)'),
-                                                '-'),
-                    coveralls_status=link(project.coveralls_url,
-                                          image(project.coveralls_image_url, 'Test Coverage'),
-                                          '-'),
-                ) for project in projects
-            ),
-        ),
-        python_versions_table=python_versions_table_template.format(
-            rows='\n'.join(
-                python_versions_table_row_template.format(
-                    name=link(project.url, escape(project.name)),
-                    py24='+' if '2.4' in project.python_versions else '-',
-                    py25='+' if '2.5' in project.python_versions else '-',
-                    py26='+' if '2.6' in project.python_versions else '-',
-                    py27='+' if '2.7' in project.python_versions else '-',
-                    py30='+' if '3.0' in project.python_versions else '-',
-                    py31='+' if '3.1' in project.python_versions else '-',
-                    py32='+' if '3.2' in project.python_versions else '-',
-                    py33='+' if '3.3' in project.python_versions else '-',
-                    py34='+' if '3.4' in project.python_versions else '-',
-                    pypy='+' if 'PyPy' in project.python_versions else '-',
-                ) for project in projects
-            ),
-        ),
-    ))
+    print(template.render_unicode(projects=list(projects),
+                                  nice_date=nice_date,
+                                  pluralize=pluralize))
 
 
 if __name__ == '__main__':
