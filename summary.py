@@ -322,6 +322,33 @@ template = Template('''\
       #release-status th:nth-child(3), #release-status td:nth-child(3) { text-align: right; }
       #release-status th:nth-child(4), #release-status td:nth-child(4) { text-align: right; }
       #release-status th:nth-child(5), #release-status td:nth-child(5) { text-align: right; }
+      #python-versions span.no,
+      #python-versions span.yes {
+        padding: 2px 4px 3px 4px;
+        font-family: DejaVu Sans, Verdana, Geneva, sans-serif;
+        font-size: 11px;
+        position: relative;
+        bottom: 2px;
+      }
+      #python-versions span.no {
+        color: #888;
+      }
+      #python-versions span.yes {
+        color: #fff;
+        background-color: #4c1;
+        background-image:
+            linear-gradient(
+                to bottom,
+                rgba(255, 255, 255, 0.7),
+                rgba(170, 170, 170, 0.1) 10%,
+## the next line should be 'rgba(0, 0, 0, 0.3) 90%' to match shields.io SVG badges, such as used by Travis CI
+## the variation I use here matches coveralls.io PNG badges a bit better
+                rgba(170, 170, 170, 0.3) 90%,
+                rgba(0, 0, 0, .5) 100%
+            );
+        text-shadow: 0px 1px 0px rgba(1, 1, 1, 0.3);
+        border-radius: 4px;
+      }
       footer { padding-top: 16px; padding-bottom: 20px; text-align: center; color: #999; }
     </style>
 
@@ -415,7 +442,11 @@ template = Template('''\
               <tr>
                 <td><a href="${project.url}">${project.name}</a></td>
 %     for ver in versions:
-                <td>${'+' if ver in project.python_versions else '-'}</td>
+%         if ver in project.python_versions:
+                <td><span class="yes">+</span></td>
+%         else:
+                <td><span class="no">&#x2212;</span></td>
+%         endif
 %     endfor
                 <td><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="Test Coverage"></a></td>
               </tr>
