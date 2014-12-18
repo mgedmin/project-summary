@@ -349,7 +349,7 @@ template = Template('''\
         text-shadow: 0px 1px 0px rgba(1, 1, 1, 0.3);
         border-radius: 4px;
       }
-      footer { padding-top: 16px; padding-bottom: 20px; text-align: center; color: #999; }
+      footer { padding-top: 16px; padding-bottom: 16px; text-align: center; color: #999; }
     </style>
 
     <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
