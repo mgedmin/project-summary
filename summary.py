@@ -6,14 +6,18 @@ Generate a summary for all my projects.
 import argparse
 import glob
 import linecache
+import math
 import os
 import subprocess
 import sys
+import time
 import traceback
 
 import arrow
 import mako.template
 import mako.exceptions
+import requests
+import requests_cache
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
@@ -47,6 +51,32 @@ class reify(object):
         value = self.fn(obj)
         obj.__dict__[self.fn.__name__] = value
         return value
+
+
+#
+# Data extraction
+#
+
+class GitHubError(Exception):
+    pass
+
+
+class GitHubRateLimitError(GitHubError):
+    pass
+
+
+def github_request(url):
+    res = requests.get(url)
+    if res.status_code == 403 and res.headers.get('X-RateLimit-Remaining') == '0':
+        reset_time = int(res.headers['X-RateLimit-Reset'])
+        minutes = int(math.ceil((reset_time - time.time()) / 60))
+        raise GitHubRateLimitError(
+            '{message}\nTry again in {minutes} minutes.'.format(
+                message=res.json()['message'],
+                minutes=minutes))
+    elif 400 <= res.status_code < 500:
+        raise GitHubError(res.json()['message'])
+    return res.json()
 
 
 #
@@ -247,6 +277,21 @@ class Project(object):
     def python_versions(self):
         return get_supported_python_versions(self.working_tree)
 
+    @reify
+    def open_issues_count(self):
+        if not self.is_on_github:
+            return None
+        url = 'https://api.github.com/repos/{owner}/{name}'.format(
+            owner=self.owner, name=self.name)
+        # Returns number of issues plus number of pull requests
+        return github_request(url)['open_issues_count']
+
+    @reify
+    def issues_url(self):
+        if not self.is_on_github:
+            return None
+        return '{base}/issues'.format(base=self.url)
+
 
 def get_projects():
     for path in get_repos():
@@ -322,6 +367,7 @@ template = Template('''\
       #release-status th:nth-child(3), #release-status td:nth-child(3) { text-align: right; }
       #release-status th:nth-child(4), #release-status td:nth-child(4) { text-align: right; }
       #release-status th:nth-child(5), #release-status td:nth-child(5) { text-align: right; }
+      #maintenance th:nth-child(6), #maintenance td:nth-child(6) { text-align: center; }
       #python-versions span.no,
       #python-versions span.yes {
         padding: 2px 4px 3px 4px;
@@ -407,6 +453,7 @@ template = Template('''\
                 <th>Jenkins (Linux)</th>
                 <th>Jenkins (Windows)</th>
                 <th>Coveralls</th>
+                <th>Issues</th>
               </tr>
             </thead>
             <tbody>
@@ -417,6 +464,7 @@ template = Template('''\
                 <td><a href="${project.jenkins_url}"><img src="${project.jenkins_image_url}" alt="Jenkins Status"></a></td>
                 <td><a href="${project.jenkins_url_windows}"><img src="${project.jenkins_image_url_windows}" alt="Jenkins (Windows)"></a></td>
                 <td><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="Test Coverage"></a></td>
+                <td><a href="${project.issues_url}">${project.open_issues_count}</a></td>
               </tr>
 % endfor
             </tbody>
@@ -556,10 +604,22 @@ def main():
                         help='be more verbose (can be repeated)')
     parser.add_argument('--html', action='store_true',
                         help='produce HTML output')
+    parser.add_argument('--http-cache', default='.httpcache',
+                        # .sqlite will be appended automatically
+                        help='cache HTTP requests on disk (default: %default)')
+    parser.add_argument('--no-http-cache', action='store_false', dest='http_cache',
+                        help='disable HTTP disk caching')
     args = parser.parse_args()
+    if args.http_cache:
+        requests_cache.install_cache(args.http_cache,
+                                     backend='sqlite',
+                                     expire_after=300)
+
     if args.html:
         try:
             print_html_report(get_projects())
+        except GitHubError as e:
+            sys.exit("GitHub error: %s" % e)
         except Exception:
             # if I let CPython print the exception, it'll ignore all of
             # my extra information stuffed into linecache :/
