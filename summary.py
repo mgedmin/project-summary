@@ -437,7 +437,11 @@ template = Template('''\
                 <td>${project.last_tag}</td>
                 <td title="${project.last_tag_date}">${nice_date(project.last_tag_date)}</td>
                 <td><a href="${project.compare_url}">${pluralize(len(project.pending_commits), 'commits')}</a></td>
+%     if project.travis_url:
                 <td><a href="${project.travis_url}"><img src="${project.travis_image_url}" alt="Build Status"></a></td>
+%     else:
+                <td>-</td>
+%     endif
               </tr>
 % endfor
             </tbody>
@@ -460,10 +464,18 @@ template = Template('''\
 % for project in projects:
               <tr>
                 <td><a href="${project.url}">${project.name}</a></td>
+%     if project.travis_url:
                 <td><a href="${project.travis_url}"><img src="${project.travis_image_url}" alt="Build Status"></a></td>
+%     else:
+                <td>-</td>
+%     endif
                 <td><a href="${project.jenkins_url}"><img src="${project.jenkins_image_url}" alt="Jenkins Status"></a></td>
                 <td><a href="${project.jenkins_url_windows}"><img src="${project.jenkins_image_url_windows}" alt="Jenkins (Windows)"></a></td>
+%     if project.coveralls_url:
                 <td><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="Test Coverage"></a></td>
+%     else:
+                <td>-</td>
+%     endif
                 <td><a href="${project.issues_url}">${project.open_issues_count}</a></td>
               </tr>
 % endfor
@@ -496,7 +508,11 @@ template = Template('''\
                 <td><span class="no">&#x2212;</span></td>
 %         endif
 %     endfor
+%     if project.coveralls_url:
                 <td><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="Test Coverage"></a></td>
+%     else:
+                <td>-</td>
+%     endif
               </tr>
 % endfor
             </tbody>
