@@ -237,8 +237,10 @@ class Project(object):
             return None
         # 18px-high PNG
         # template = 'https://coveralls.io/repos/{owner}/{name}/badge.png?branch=master'
-        # SVG from shields.io (slow/nonfunctional)
-        template = 'https://img.shields.io/coveralls/{owner}/{name}.svg?style=flat'
+        # 20px-high flat SVG
+        template = 'https://coveralls.io/repos/{owner}/{name}/badge.svg?branch=master'
+        # SVG from shields.io (slow)
+        # template = 'https://img.shields.io/coveralls/{owner}/{name}.svg?style=flat'
         return template.format(name=self.name, owner=self.owner)
 
     @property
