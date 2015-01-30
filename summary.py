@@ -383,16 +383,6 @@ template = Template('''\
       #python-versions span.yes {
         color: #fff;
         background-color: #4c1;
-        background-image:
-            linear-gradient(
-                to bottom,
-                rgba(255, 255, 255, 0.7),
-                rgba(170, 170, 170, 0.1) 10%,
-## the next line should be 'rgba(0, 0, 0, 0.3) 90%' to match shields.io SVG badges, such as used by Travis CI
-## the variation I use here matches coveralls.io PNG badges a bit better
-                rgba(170, 170, 170, 0.3) 90%,
-                rgba(0, 0, 0, .5) 100%
-            );
         text-shadow: 0px 1px 0px rgba(1, 1, 1, 0.3);
         border-radius: 4px;
       }
