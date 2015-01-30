@@ -216,10 +216,11 @@ class Project(object):
     def travis_image_url(self):
         if not self.uses_travis:
             return None
-        # Travis has 19px-high PNG images and 18px-high SVG images
+        # Travis has 20px-high SVG images in the new (flat) style
         template = 'https://api.travis-ci.org/{owner}/{name}.svg?branch=master'
-        # Shields.io give me 18px-high SVG and PNG images that look better,
-        # but are slower or even fail to load (rate limiting?)
+        # Shields.io gives me 18px-high SVG and PNG images in the old style
+        # and 20px-high in the flat style with ?style=flat
+        # but these are slower and sometimes even fail to load
         ## template = '//img.shields.io/travis/{owner}/{name}/master.svg'
         return template.format(name=self.name, owner=self.owner)
 
@@ -235,9 +236,9 @@ class Project(object):
         if not self.uses_travis:
             return None
         # 18px-high PNG
-        template = 'https://coveralls.io/repos/{owner}/{name}/badge.png?branch=master'
+        # template = 'https://coveralls.io/repos/{owner}/{name}/badge.png?branch=master'
         # SVG from shields.io (slow/nonfunctional)
-        ## template = 'https://img.shields.io/coveralls/{owner}/{name}.svg'
+        template = 'https://img.shields.io/coveralls/{owner}/{name}.svg?style=flat'
         return template.format(name=self.name, owner=self.owner)
 
     @property
