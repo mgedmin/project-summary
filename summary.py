@@ -611,6 +611,8 @@ def main():
                         help='be more verbose (can be repeated)')
     parser.add_argument('--html', action='store_true',
                         help='produce HTML output')
+    parser.add_argument('-o', metavar='FILENAME', dest='output_file',
+                        help='write the output to a file (default: stdout)')
     parser.add_argument('--http-cache', default='.httpcache', metavar='DBNAME',
                         # .sqlite will be appended automatically
                         help='cache HTTP requests on disk in an sqlite database (default: .httpcache)')
@@ -624,7 +626,7 @@ def main():
 
     if args.html:
         try:
-            print_html_report(get_projects())
+            print_html_report(get_projects(), args.output_file)
         except GitHubError as e:
             sys.exit("GitHub error: %s" % e)
         except Exception:
@@ -633,6 +635,8 @@ def main():
             traceback.print_exc()
             sys.exit(1)
     else:
+        if args.output_file:
+            print("warning: --output-file ignored in non-HTML mode")
         print_report(get_projects(), args.verbose)
 
 
@@ -649,10 +653,17 @@ def print_report(projects, verbose):
             print("")
 
 
-def print_html_report(projects):
-    print(template.render_unicode(projects=list(projects),
-                                  nice_date=nice_date,
-                                  pluralize=pluralize))
+def print_html_report(projects, filename=None):
+    # I want atomicity: don't destroy old .html file if an exception happens
+    # during rendering.
+    html = template.render_unicode(projects=list(projects),
+                                   nice_date=nice_date,
+                                   pluralize=pluralize)
+    if filename and filename != '-':
+        with open(filename, 'w') as f:
+            f.write(html)
+    else:
+        print(html)
 
 
 if __name__ == '__main__':
