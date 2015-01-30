@@ -611,9 +611,9 @@ def main():
                         help='be more verbose (can be repeated)')
     parser.add_argument('--html', action='store_true',
                         help='produce HTML output')
-    parser.add_argument('--http-cache', default='.httpcache',
+    parser.add_argument('--http-cache', default='.httpcache', metavar='DBNAME',
                         # .sqlite will be appended automatically
-                        help='cache HTTP requests on disk (default: %default)')
+                        help='cache HTTP requests on disk in an sqlite database (default: .httpcache)')
     parser.add_argument('--no-http-cache', action='store_false', dest='http_cache',
                         help='disable HTTP disk caching')
     args = parser.parse_args()
