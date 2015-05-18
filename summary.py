@@ -250,6 +250,21 @@ class Project(object):
         return 'https://coveralls.io/r/{owner}/{name}'.format(name=self.name,
                                                               owner=self.owner)
 
+    @reify
+    def coverage_number(self):
+        url = self.coveralls_image_url
+        if not url:
+            return None
+        res = requests.get(url, allow_redirects=False)
+        location = res.headers.get('Location')
+        if res.status_code != 302 or not location:
+            return None
+        PREFIX = 'https://s3.amazonaws.com/assets.coveralls.io/badges/coveralls_'
+        SUFFIX = '.svg'
+        if location.startswith(PREFIX) and location.endswith(SUFFIX):
+            return int(location[len(PREFIX):-len(SUFFIX)])
+        return None
+
     @property
     def jenkins_image_url(self):
         if not self.uses_jenkins:
@@ -465,7 +480,7 @@ template = Template('''\
                 <td><a href="${project.jenkins_url}"><img src="${project.jenkins_image_url}" alt="Jenkins Status"></a></td>
                 <td><a href="${project.jenkins_url_windows}"><img src="${project.jenkins_image_url_windows}" alt="Jenkins (Windows)"></a></td>
 %     if project.coveralls_url:
-                <td><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="Test Coverage"></a></td>
+                <td data-coverage="${project.coverage_number}"><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="Test Coverage: ${project.coverage_number}%"></a></td>
 %     else:
                 <td>-</td>
 %     endif
@@ -502,7 +517,7 @@ template = Template('''\
 %         endif
 %     endfor
 %     if project.coveralls_url:
-                <td><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="Test Coverage"></a></td>
+                <td data-coverage="${project.coverage_number}"><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="Test Coverage: ${project.coverage_number}%"></a></td>
 %     else:
                 <td>-</td>
 %     endif
@@ -553,11 +568,17 @@ template = Template('''\
           theme: "bootstrap",
           widgets: ['uitheme'],
           widthFixed: true,
+          textExtraction: {
+            4: function(node, table, cellIndex) { return $(node).attr('data-coverage'); }
+          }
         });
         $("#python-versions table").tablesorter({
           theme: "bootstrap",
           widgets: ['uitheme'],
           widthFixed: true,
+          textExtraction: {
+            ${1 + len(versions)}: function(node, table, cellIndex) { return $(node).attr('data-coverage'); }
+          }
         });
         var dont_recurse = false;
         $('a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
