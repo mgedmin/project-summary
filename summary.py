@@ -493,7 +493,7 @@ template = Template('''\
 
         <div class="tab-pane" id="python-versions">
           <% versions = ['2.{}'.format(m) for m in range(4, 7+1)] %>
-          <% versions += ['3.{}'.format(m) for m in range(0, 4+1)] %>
+          <% versions += ['3.{}'.format(m) for m in range(0, 5+1)] %>
           <% versions += ['PyPy'] %>
           <table class="table table-hover">
             <thead>
