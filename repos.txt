@@ -5,4 +5,4 @@
 /var/lib/jenkins/jobs/*/workspace
 
 # Configuration for my machine (development)
-~/src/projects/*
+~/projects/*
