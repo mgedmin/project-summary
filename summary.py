@@ -457,6 +457,13 @@ template = Template('''\
     <![endif]-->
   </head>
 
+<%def name="project_name(project)">\\
+<a href="${project.url}">${project.name}</a>\\
+% if project.branch != 'master':
+ (${project.branch})\\
+% endif
+</%def>
+
   <body role="document">
     <div class="container">
 
@@ -485,7 +492,7 @@ template = Template('''\
             <tbody>
 % for project in projects:
               <tr>
-                <td><a href="${project.url}">${project.name}</a></td>
+                <td>${project_name(project)}</td>
                 <td>${project.last_tag}</td>
                 <td title="${project.last_tag_date}">${nice_date(project.last_tag_date)}</td>
                 <td><a href="${project.compare_url}">${pluralize(len(project.pending_commits), 'commits')}</a></td>
@@ -515,7 +522,7 @@ template = Template('''\
             <tbody>
 % for project in projects:
               <tr>
-                <td><a href="${project.url}">${project.name}</a></td>
+                <td>${project_name(project)}</td>
 %     if project.travis_url:
                 <td><a href="${project.travis_url}"><img src="${project.travis_image_url}" alt="Build Status"></a></td>
 %     else:
@@ -552,7 +559,7 @@ template = Template('''\
             <tbody>
 % for project in projects:
               <tr>
-                <td><a href="${project.url}">${project.name}</a></td>
+                <td>${project_name(project)}</td>
 %     for ver in versions:
 %         if ver in project.python_versions:
                 <td><span class="yes">+</span></td>
