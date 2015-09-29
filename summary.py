@@ -156,8 +156,8 @@ def get_date_of_tag(repo_path, tag):
     return pipe("git", "log", "-1", "--format=%ai", tag, cwd=repo_path).strip()
 
 
-def get_pending_commits(repo_path, last_tag):
-    return pipe("git", "log", "--oneline", "{}..origin/master".format(last_tag),
+def get_pending_commits(repo_path, last_tag, branch='master'):
+    return pipe("git", "log", "--oneline", "{}..origin/{}".format(last_tag, branch),
                 cwd=repo_path).splitlines()
 
 
@@ -217,7 +217,7 @@ class Project(object):
 
     @reify
     def pending_commits(self):
-        return get_pending_commits(self.working_tree, self.last_tag)
+        return get_pending_commits(self.working_tree, self.last_tag, self.branch)
 
     @property
     def owner(self):
