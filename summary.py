@@ -611,6 +611,7 @@ template = Template('''\
           theme: "bootstrap",
           widgets: ['uitheme'],
           widthFixed: true,
+          sortList: [[0, 0]],
           textExtraction: {
             2: function(node, table, cellIndex) { return $(node).attr('title'); }
           }
@@ -619,6 +620,7 @@ template = Template('''\
           theme: "bootstrap",
           widgets: ['uitheme'],
           widthFixed: true,
+          sortList: [[0, 0]],
           textExtraction: {
             4: function(node, table, cellIndex) { return $(node).attr('data-coverage'); }
           }
@@ -627,6 +629,7 @@ template = Template('''\
           theme: "bootstrap",
           widgets: ['uitheme'],
           widthFixed: true,
+          sortList: [[0, 0]],
           textExtraction: {
             ${1 + len(versions)}: function(node, table, cellIndex) { return $(node).attr('data-coverage'); }
           }
