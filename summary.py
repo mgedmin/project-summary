@@ -123,6 +123,30 @@ def get_project_name(url):
     return url.rpartition('/')[-1]
 
 
+def get_branch_name(repo_path):
+    name = pipe("git", "rev-parse", "--abbrev-ref", "HEAD",
+                cwd=repo_path, stderr=subprocess.PIPE).strip()
+    if name != 'HEAD':
+        return name
+    # detached head, oh my
+    commit = pipe("git", "rev-parse", "HEAD",
+                  cwd=repo_path, stderr=subprocess.PIPE).strip()
+    for line in pipe("git", "show-ref", cwd=repo_path, stderr=subprocess.PIPE).splitlines():
+        if line.startswith(commit):
+            name = line.split()[1]
+            if name.startswith('refs/'):
+                name = name[len('refs/'):]
+            if name.startswith('heads/'):
+                name = name[len('remotes/'):]
+            elif name.startswith('remotes/'):
+                name = name[len('remotes/'):]
+                if name.startswith('origin/'):
+                   name = name[len('origin/'):]
+            if name != 'HEAD':
+                return name
+    return '(detached)'
+
+
 def get_last_tag(repo_path):
     return pipe("git", "describe", "--tags", "--abbrev=0",
                 cwd=repo_path, stderr=subprocess.PIPE).strip()
@@ -180,6 +204,10 @@ class Project(object):
         return self.owner in ('mgedmin', 'gtimelog')
 
     @reify
+    def branch(self):
+        return get_branch_name(self.working_tree)
+
+    @reify
     def last_tag(self):
         return get_last_tag(self.working_tree)
 
@@ -206,23 +234,31 @@ class Project(object):
             return os.path.basename(self.working_tree)
 
     @property
+    def jenkins_job(self):
+        if os.path.basename(self.working_tree) == 'workspace':
+            return os.path.basename(os.path.dirname(self.working_tree))
+        else:
+            return os.path.basename(self.working_tree)
+
+    @property
     def compare_url(self):
         if not self.is_on_github:
             return None
-        return '{base}/compare/{tag}...master'.format(base=self.url,
-                                                      tag=self.last_tag)
+        return '{base}/compare/{tag}...{branch}'.format(base=self.url,
+                                                        branch=self.branch,
+                                                        tag=self.last_tag)
 
     @property
     def travis_image_url(self):
         if not self.uses_travis:
             return None
         # Travis has 20px-high SVG images in the new (flat) style
-        template = 'https://api.travis-ci.org/{owner}/{name}.svg?branch=master'
+        template = 'https://api.travis-ci.org/{owner}/{name}.svg?branch={branch}'
         # Shields.io gives me 18px-high SVG and PNG images in the old style
         # and 20px-high in the flat style with ?style=flat
         # but these are slower and sometimes even fail to load
         ## template = '//img.shields.io/travis/{owner}/{name}/master.svg'
-        return template.format(name=self.name, owner=self.owner)
+        return template.format(name=self.name, owner=self.owner, branch=self.branch)
 
     @property
     def travis_url(self):
@@ -238,10 +274,10 @@ class Project(object):
         # 18px-high PNG
         # template = 'https://coveralls.io/repos/{owner}/{name}/badge.png?branch=master'
         # 20px-high flat SVG
-        template = 'https://coveralls.io/repos/{owner}/{name}/badge.svg?branch=master'
+        template = 'https://coveralls.io/repos/{owner}/{name}/badge.svg?branch={branch}'
         # SVG from shields.io (slow)
         # template = 'https://img.shields.io/coveralls/{owner}/{name}.svg?style=flat'
-        return template.format(name=self.name, owner=self.owner)
+        return template.format(name=self.name, owner=self.owner, branch=self.branch)
 
     @property
     def coveralls_url(self):
@@ -262,33 +298,41 @@ class Project(object):
         PREFIX = 'https://s3.amazonaws.com/assets.coveralls.io/badges/coveralls_'
         SUFFIX = '.svg'
         if location.startswith(PREFIX) and location.endswith(SUFFIX):
-            return int(location[len(PREFIX):-len(SUFFIX)])
+            coverage = location[len(PREFIX):-len(SUFFIX)]
+            if coverage.isdigit():  # could be 'unknown'
+                return int(coverage)
         return None
+
+    def coverage(self, format='{}', unknown='-1'):
+        if self.coverage_number is None:
+            return unknown
+        else:
+            return format.format(self.coverage_number)
 
     @property
     def jenkins_image_url(self):
         if not self.uses_jenkins:
             return None
-        return 'https://jenkins.gedmin.as/job/{name}/badge/icon'.format(name=self.name)
+        return 'https://jenkins.gedmin.as/job/{name}/badge/icon'.format(name=self.jenkins_job)
 
     @property
     def jenkins_url(self):
         if not self.uses_jenkins:
             return None
-        return 'https://jenkins.gedmin.as/job/{name}/'.format(name=self.name)
+        return 'https://jenkins.gedmin.as/job/{name}/'.format(name=self.jenkins_job)
 
     @property
     def jenkins_image_url_windows(self):
         if not self.uses_jenkins:
             return None
-        job = self.name + '-on-windows'
+        job = self.jenkins_job + '-on-windows'
         return 'https://jenkins.gedmin.as/job/{name}/badge/icon'.format(name=job)
 
     @property
     def jenkins_url_windows(self):
         if not self.uses_jenkins:
             return None
-        job = self.name + '-on-windows'
+        job = self.jenkins_job + '-on-windows'
         return 'https://jenkins.gedmin.as/job/{name}/'.format(name=job)
 
     @reify
@@ -480,7 +524,7 @@ template = Template('''\
                 <td><a href="${project.jenkins_url}"><img src="${project.jenkins_image_url}" alt="Jenkins Status"></a></td>
                 <td><a href="${project.jenkins_url_windows}"><img src="${project.jenkins_image_url_windows}" alt="Jenkins (Windows)"></a></td>
 %     if project.coveralls_url:
-                <td data-coverage="${project.coverage_number}"><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="Test Coverage: ${project.coverage_number}%"></a></td>
+                <td data-coverage="${project.coverage()}"><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="Test Coverage: ${project.coverage('{}%', 'unknown')}"></a></td>
 %     else:
                 <td>-</td>
 %     endif
@@ -517,7 +561,7 @@ template = Template('''\
 %         endif
 %     endfor
 %     if project.coveralls_url:
-                <td data-coverage="${project.coverage_number}"><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="Test Coverage: ${project.coverage_number}%"></a></td>
+                <td data-coverage="${project.coverage()}"><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="Test Coverage: ${project.coverage('{}%', 'unknown')}"></a></td>
 %     else:
                 <td>-</td>
 %     endif
