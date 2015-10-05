@@ -283,8 +283,8 @@ class Project(object):
     def coveralls_url(self):
         if not self.uses_travis:
             return None
-        return 'https://coveralls.io/r/{owner}/{name}'.format(name=self.name,
-                                                              owner=self.owner)
+        return 'https://coveralls.io/r/{owner}/{name}?branch={branch}'.format(
+            name=self.name, owner=self.owner, branch=self.branch)
 
     @reify
     def coverage_number(self):
