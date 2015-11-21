@@ -186,7 +186,7 @@ class Project(object):
         self.working_tree = working_tree
 
     def update(self):
-        pipe('git', 'pull', '-q', '--ff-only', cwd=self.working_tree)
+        pipe('git', 'fetch', cwd=self.working_tree)
 
     @reify
     def url(self):
@@ -703,7 +703,7 @@ def main():
     parser.add_argument('--no-http-cache', action='store_false', dest='http_cache',
                         help='disable HTTP disk caching')
     parser.add_argument('--update', action='store_true',
-                        help='run git pull --ff-only in each project')
+                        help='run git fetch in each project')
     args = parser.parse_args()
     if args.http_cache:
         requests_cache.install_cache(args.http_cache,
