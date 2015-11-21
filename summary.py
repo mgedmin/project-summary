@@ -185,6 +185,9 @@ class Project(object):
     def __init__(self, working_tree):
         self.working_tree = working_tree
 
+    def update(self):
+        pipe('git', 'pull', '-q', '--ff-only', cwd=self.working_tree)
+
     @reify
     def url(self):
         return normalize_github_url(get_repo_url(self.working_tree))
@@ -355,10 +358,14 @@ class Project(object):
         return '{base}/issues'.format(base=self.url)
 
 
-def get_projects():
+def get_projects(update=False):
     for path in get_repos():
         p = Project(path)
-        if p.name not in IGNORE and p.last_tag:
+        if p.name in IGNORE:
+            continue
+        if update:
+            p.update()
+        if p.last_tag:
             yield p
 
 
@@ -695,6 +702,8 @@ def main():
                         help='cache HTTP requests on disk in an sqlite database (default: .httpcache)')
     parser.add_argument('--no-http-cache', action='store_false', dest='http_cache',
                         help='disable HTTP disk caching')
+    parser.add_argument('--update', action='store_true',
+                        help='run git pull --ff-only in each project')
     args = parser.parse_args()
     if args.http_cache:
         requests_cache.install_cache(args.http_cache,
@@ -703,7 +712,7 @@ def main():
 
     if args.html:
         try:
-            print_html_report(get_projects(), args.output_file)
+            print_html_report(get_projects(args.update), args.output_file)
         except GitHubError as e:
             sys.exit("GitHub error: %s" % e)
         except Exception:
@@ -714,7 +723,7 @@ def main():
     else:
         if args.output_file:
             print("warning: --output-file ignored in non-HTML mode")
-        print_report(get_projects(), args.verbose)
+        print_report(get_projects(args.update), args.verbose)
 
 
 def print_report(projects, verbose):
