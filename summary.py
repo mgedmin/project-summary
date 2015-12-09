@@ -21,7 +21,7 @@ import requests_cache
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.8.0dev'
+__version__ = '0.9.0.dev0'
 
 here = os.path.dirname(__file__)
 
@@ -202,6 +202,12 @@ class Project(object):
             return False
         return os.path.exists(os.path.join(self.working_tree, '.travis.yml'))
 
+    @reify
+    def uses_appveyor(self):
+        if not self.is_on_github:
+            return False
+        return os.path.exists(os.path.join(self.working_tree, 'appveyor.yml'))
+
     @property
     def uses_jenkins(self):
         return self.owner in ('mgedmin', 'gtimelog')
@@ -269,6 +275,20 @@ class Project(object):
             return None
         return 'https://travis-ci.org/{owner}/{name}'.format(name=self.name,
                                                              owner=self.owner)
+
+    @property
+    def appveyor_image_url(self):
+        if not self.uses_appveyor:
+            return None
+        template = 'https://ci.appveyor.com/api/projects/status/github/{owner}/{name}?branch={branch}&svg=true'
+        return template.format(name=self.name, owner=self.owner, branch=self.branch)
+
+    @property
+    def appveyor_url(self):
+        if not self.uses_appveyor:
+            return None
+        return 'https://ci.appveyor.com/project/{owner}/{name}/branch/{branch}'.format(
+            name=self.name, owner=self.owner, branch=self.branch)
 
     @property
     def coveralls_image_url(self):
@@ -522,6 +542,7 @@ template = Template('''\
                 <th>Travis CI</th>
                 <th>Jenkins (Linux)</th>
                 <th>Jenkins (Windows)</th>
+                <th>Appveyor</th>
                 <th>Coveralls</th>
                 <th>Issues</th>
               </tr>
@@ -537,6 +558,11 @@ template = Template('''\
 %     endif
                 <td><a href="${project.jenkins_url}"><img src="${project.jenkins_image_url}" alt="Jenkins Status"></a></td>
                 <td><a href="${project.jenkins_url_windows}"><img src="${project.jenkins_image_url_windows}" alt="Jenkins (Windows)"></a></td>
+%     if project.appveyor_url:
+                <td><a href="${project.appveyor_url}"><img src="${project.appveyor_image_url}" alt="Build Status (Windows)"></a></td>
+%     else:
+                <td>-</td>
+%     endif
 %     if project.coveralls_url:
                 <td data-coverage="${project.coverage()}"><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="Test Coverage: ${project.coverage('{}%', 'unknown')}"></a></td>
 %     else:
@@ -629,7 +655,7 @@ template = Template('''\
           widthFixed: true,
           sortList: [[0, 0]],
           textExtraction: {
-            4: function(node, table, cellIndex) { return $(node).attr('data-coverage'); }
+            5: function(node, table, cellIndex) { return $(node).attr('data-coverage'); }
           }
         });
         $("#python-versions table").tablesorter({
