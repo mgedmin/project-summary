@@ -187,7 +187,7 @@ class Project(object):
         self.working_tree = working_tree
 
     def update(self):
-        pipe('git', 'fetch', cwd=self.working_tree)
+        pipe('git', 'fetch', '--prune', cwd=self.working_tree)
 
     @reify
     def url(self):
