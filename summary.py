@@ -32,6 +32,7 @@ here = os.path.dirname(__file__)
 
 REPOS = 'repos.txt'
 IGNORE = []
+APPVEYOR_ACCOUNT = 'mgedmin'
 
 
 #
@@ -287,8 +288,8 @@ class Project(object):
     def appveyor_url(self):
         if not self.uses_appveyor:
             return None
-        return 'https://ci.appveyor.com/project/{owner}/{name}/branch/{branch}'.format(
-            name=self.name, owner=self.owner, branch=self.branch)
+        return 'https://ci.appveyor.com/project/{account}/{name}/branch/{branch}'.format(
+            name=self.name, account=APPVEYOR_ACCOUNT, branch=self.branch)
 
     @property
     def coveralls_image_url(self):
