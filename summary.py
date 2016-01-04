@@ -457,7 +457,7 @@ template = Template('''\
       #release-status th:nth-child(3), #release-status td:nth-child(3) { text-align: right; }
       #release-status th:nth-child(4), #release-status td:nth-child(4) { text-align: right; }
       #release-status th:nth-child(5), #release-status td:nth-child(5) { text-align: right; }
-      #maintenance th:nth-child(6), #maintenance td:nth-child(6) { text-align: center; }
+      #maintenance th:nth-child(7), #maintenance td:nth-child(7) { text-align: center; }
       #python-versions span.no,
       #python-versions span.yes {
         padding: 2px 4px 3px 4px;
