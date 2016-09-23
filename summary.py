@@ -538,6 +538,15 @@ template = Template('''\
 
         <div class="tab-pane" id="maintenance">
           <table class="table table-hover">
+            <colgroup>
+              <col>
+              <col width="15%">
+              <col width="15%">
+              <col width="15%">
+              <col width="15%">
+              <col width="15%">
+              <col width="0">
+            </colgroup>
             <thead>
               <tr>
                 <th>Name</th>
@@ -577,8 +586,8 @@ template = Template('''\
           </table>
         </div>
 
+<% versions = ['2.7', '3.3', '3.4', '3.5', 'PyPy'] %>
         <div class="tab-pane" id="python-versions">
-          <% versions = ['2.7', '3.3', '3.4', '3.5', 'PyPy'] %>
           <table class="table table-hover">
             <thead>
               <tr>
