@@ -18,6 +18,6 @@
   "dependencies": {
     "bootstrap": "~3.3.7",
     "jquery.tablesorter": "~2.14.5",
-    "jquery": "~2.1.4"
+    "jquery": "~3.1.1"
   }
 }
