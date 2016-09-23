@@ -12,6 +12,7 @@ import subprocess
 import sys
 import time
 import traceback
+import logging
 
 import arrow
 import mako.template
@@ -35,11 +36,18 @@ IGNORE = []
 APPVEYOR_ACCOUNT = 'mgedmin'
 
 
+log = logging.getLogger('project-summary')
+
+
 #
 # Utilities
 #
 
 def pipe(*cmd, **kwargs):
+    if 'cwd' in kwargs:
+        log.debug('EXEC cd %s && %s', kwargs['cwd'], ' '.join(cmd))
+    else:
+        log.debug('EXEC %s', ' '.join(cmd))
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, **kwargs)
     return p.communicate()[0].decode('UTF-8', 'replace')
 
@@ -67,6 +75,7 @@ class GitHubRateLimitError(GitHubError):
 
 
 def github_request(url):
+    log.debug('GET %s', url)
     res = requests.get(url)
     if res.status_code == 403 and res.headers.get('X-RateLimit-Remaining') == '0':
         reset_time = int(res.headers['X-RateLimit-Reset'])
@@ -315,6 +324,7 @@ class Project(object):
         url = self.coveralls_image_url
         if not url:
             return None
+        log.debug('GET %s', url)
         res = requests.get(url, allow_redirects=False)
         location = res.headers.get('Location')
         if res.status_code != 302 or not location:
@@ -754,7 +764,14 @@ def main():
     parser.add_argument('--update', action='store_true',
                         help='run git fetch in each project')
     args = parser.parse_args()
+
+    log.addHandler(logging.StreamHandler())
+    log.setLevel(logging.DEBUG if args.verbose >= 3 else
+                 logging.INFO if args.verbose >= 1 else
+                 logging.ERROR)
+
     if args.http_cache:
+        log.debug('caching HTTP requests for 5 minutes')
         requests_cache.install_cache(args.http_cache,
                                      backend='sqlite',
                                      expire_after=300)
@@ -780,9 +797,9 @@ def print_report(projects, verbose):
         print("{name:20} {commits:4} commits since {release:6} ({date})".format(
             name=project.name, commits=len(project.pending_commits),
             release=project.last_tag, date=nice_date(project.last_tag_date)))
-        if verbose:
+        if verbose >= 1:
             print("  {}".format(project.compare_url))
-            if verbose > 1:
+            if verbose >= 2:
                 print("  {}".format(project.working_tree))
             print("  Python versions: {}".format(", ".join(project.python_versions)))
             print("")
