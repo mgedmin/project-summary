@@ -454,6 +454,7 @@ template = Template('''\
       td > a > img { position: relative; top: -1px; }
       .tablesorter-icon { color: #ddd; }
       .tablesorter-header { cursor: default; }
+      .invisible { visibility: hidden; }
       #release-status th:nth-child(3), #release-status td:nth-child(3) { text-align: right; }
       #release-status th:nth-child(4), #release-status td:nth-child(4) { text-align: right; }
       #release-status th:nth-child(5), #release-status td:nth-child(5) { text-align: right; }
@@ -635,6 +636,7 @@ template = Template('''\
             active       : '',
             hover        : 'active',
             icons        : '',
+            iconSortNone : 'glyphicon glyphicon-sort invisible',
             iconSortAsc  : 'glyphicon glyphicon-sort-by-attributes',
             iconSortDesc : 'glyphicon glyphicon-sort-by-attributes-alt',
             filterRow    : '',
@@ -647,7 +649,13 @@ template = Template('''\
           theme: "bootstrap",
           widgets: ['uitheme'],
           widthFixed: true,
-          headerTemplate: '{content} {icon}',
+          headerTemplate: ' {content} {icon}',
+          onRenderHeader: function(idx, config, table) {
+            if (idx >= 2) {
+              var $this = $(this);
+              $this.find('div').prepend($this.find('i'));
+            }
+          },
           sortList: [[0, 0]],
           textExtraction: {
             2: function(node, table, cellIndex) { return $(node).attr('title'); }
