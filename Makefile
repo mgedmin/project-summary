@@ -17,28 +17,30 @@ bower_components: bower.json | bin/bower
 	bin/bower install
 	@touch -c $@
 
-css_dirs = \
-    bower_components/bootstrap/dist/css/ \
-    bower_components/jquery.tablesorter/css/
-
 css_files = \
-    $(foreach dir,$(css_dirs),$(wildcard $(dir)/*.css) $(wildcard $(dir)/*.map))
-
-js_dirs = \
-    bower_components/bootstrap/dist/js/ \
-    bower_components/jquery/dist/ \
-    bower_components/jquery.tablesorter/js/
+    bower_components/bootstrap/dist/css/bootstrap.css \
+    bower_components/bootstrap/dist/css/bootstrap.css.map \
+    bower_components/bootstrap/dist/css/bootstrap.min.css
 
 js_files = \
-    $(foreach dir,$(js_dirs),$(wildcard $(dir)/*.js) $(wildcard $(dir)/*.map))
-
-font_dirs = \
-    bower_components/bootstrap/dist/fonts/
+    bower_components/bootstrap/dist/js/bootstrap.js \
+    bower_components/bootstrap/dist/js/bootstrap.min.js \
+    bower_components/jquery/dist/jquery.js \
+    bower_components/jquery/dist/jquery.min.js \
+    bower_components/jquery/dist/jquery.min.map \
+    bower_components/jquery.tablesorter/js/jquery.tablesorter.js \
+    bower_components/jquery.tablesorter/js/jquery.tablesorter.min.js \
+    bower_components/jquery.tablesorter/js/jquery.tablesorter.widgets.js \
+    bower_components/jquery.tablesorter/js/jquery.tablesorter.widgets.min.js
 
 font_files = \
-    $(foreach dir,$(font_dirs),$(wildcard $(dir)/*.ttf) $(wildcard $(dir)/*.svg) $(wildcard $(dir)/*.eot) $(wildcard $(dir)/*.woff))
+    bower_components/bootstrap/dist/fonts/*.ttf \
+    bower_components/bootstrap/dist/fonts/*.svg \
+    bower_components/bootstrap/dist/fonts/*.eot \
+    bower_components/bootstrap/dist/fonts/*.woff*
 
 update-assets: bower_components
+	rm -rf assets
 	mkdir -p assets/css assets/js assets/fonts
 	cp $(css_files) assets/css/
 	cp $(js_files) assets/js/
