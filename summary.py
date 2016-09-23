@@ -624,25 +624,30 @@ template = Template('''\
     <script>
       $(function() {
         $.extend($.tablesorter.themes.bootstrap, {
-            table      : '',
-            caption    : '',
-            header     : '',
-            footerRow  : '',
-            footerCells: '',
-            icons      : '',
-            sortNone   : '',
-            sortAsc    : 'glyphicon glyphicon-sort-by-attributes',
-            sortDesc   : 'glyphicon glyphicon-sort-by-attributes-alt',
-            active     : '',
-            hover      : 'active',
-            filterRow  : '',
-            even       : '',
-            odd        : ''
+            table        : '',
+            caption      : '',
+            header       : '',
+            footerRow    : '',
+            footerCells  : '',
+            sortNone     : '',
+            sortAsc      : '',
+            sortDesc     : '',
+            active       : '',
+            hover        : 'active',
+            icons        : '',
+            iconSortAsc  : 'glyphicon glyphicon-sort-by-attributes',
+            iconSortDesc : 'glyphicon glyphicon-sort-by-attributes-alt',
+            filterRow    : '',
+            footerRow    : '',
+            footerCells  : '',
+            even         : '',
+            odd          : ''
           });
         $("#release-status table").tablesorter({
           theme: "bootstrap",
           widgets: ['uitheme'],
           widthFixed: true,
+          headerTemplate: '{content} {icon}',
           sortList: [[0, 0]],
           textExtraction: {
             2: function(node, table, cellIndex) { return $(node).attr('title'); }
@@ -652,6 +657,7 @@ template = Template('''\
           theme: "bootstrap",
           widgets: ['uitheme'],
           widthFixed: true,
+          headerTemplate: '{content} {icon}',
           sortList: [[0, 0]],
           textExtraction: {
             5: function(node, table, cellIndex) { return $(node).attr('data-coverage'); }
@@ -661,6 +667,7 @@ template = Template('''\
           theme: "bootstrap",
           widgets: ['uitheme'],
           widthFixed: true,
+          headerTemplate: '{content} {icon}',
           sortList: [[0, 0]],
           textExtraction: {
             ${1 + len(versions)}: function(node, table, cellIndex) { return $(node).attr('data-coverage'); }
