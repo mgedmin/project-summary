@@ -28,10 +28,10 @@ js_files = \
     bower_components/jquery/dist/jquery.js \
     bower_components/jquery/dist/jquery.min.js \
     bower_components/jquery/dist/jquery.min.map \
-    bower_components/jquery.tablesorter/js/jquery.tablesorter.js \
-    bower_components/jquery.tablesorter/js/jquery.tablesorter.min.js \
-    bower_components/jquery.tablesorter/js/jquery.tablesorter.widgets.js \
-    bower_components/jquery.tablesorter/js/jquery.tablesorter.widgets.min.js
+    bower_components/jquery.tablesorter/dist/js/jquery.tablesorter.js \
+    bower_components/jquery.tablesorter/dist/js/jquery.tablesorter.min.js \
+    bower_components/jquery.tablesorter/dist/js/jquery.tablesorter.widgets.js \
+    bower_components/jquery.tablesorter/dist/js/jquery.tablesorter.widgets.min.js
 
 font_files = \
     bower_components/bootstrap/dist/fonts/*.ttf \
