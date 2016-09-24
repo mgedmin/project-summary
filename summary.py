@@ -840,7 +840,7 @@ def main():
                         help='cache HTTP requests on disk in an sqlite database (default: .httpcache)')
     parser.add_argument('--no-http-cache', action='store_false', dest='http_cache',
                         help='disable HTTP disk caching')
-    parser.add_argument('--cache-duration', default='30m',
+    parser.add_argument('--cache-duration', default='15m',
                         help='how long to cache HTTP requests (default: 30m)')
     parser.add_argument('--update', action='store_true',
                         help='run git fetch in each project')

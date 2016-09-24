@@ -46,15 +46,13 @@ and in ``repos.txt``.  It should be moved to a config file.
 Note on HTTP request caching
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-HTTP requests are cached for 30 minutes by default, in an SQLite database
+HTTP requests are cached for 15 minutes by default, in an SQLite database
 called ``.httpcache.sqlite``.
 
 This is because I run the script rather often while I'm developing it,
 and without caching I'd run into GitHub's public API rate limits (60
-requests per hour) very quickly.  Given two API requests per project (one
-to cound open issues and one to count open pull requests) allow me to have
-up to 15 projects without running into the rate limit with the default
-cache duration.
+requests per hour) very quickly.  The default cache duration lets me have
+up to 15 projects, which is exactly the number that I have. ;)
 
 You can change the cache duration by specifying, e.g. ``--cache-duration 5m``
 (valid units are seconds, minutes and hours and can be abbreviated to
