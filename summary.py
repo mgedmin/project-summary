@@ -111,9 +111,11 @@ def github_request(url):
         reset_time = int(res.headers['X-RateLimit-Reset'])
         minutes = int(math.ceil((reset_time - time.time()) / 60))
         raise GitHubRateLimitError(
-            '{message}\nTry again in {minutes} minutes.'.format(
+            '{message}\nTry again in {minutes} minutes, at {time}.'.format(
                 message=res.json()['message'],
-                minutes=minutes))
+                minutes=minutes,
+                time=time.strftime('%H:%M', time.localtime(reset_time)),
+            ))
     elif 400 <= res.status_code < 500:
         raise GitHubError(res.json()['message'])
     return res
