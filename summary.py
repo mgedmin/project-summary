@@ -5,14 +5,15 @@ Generate a summary for all my projects.
 
 import argparse
 import glob
+import itertools
 import linecache
+import logging
 import math
 import os
 import subprocess
 import sys
 import time
 import traceback
-import logging
 
 import arrow
 import mako.template
@@ -97,7 +98,22 @@ def github_request(url):
                 minutes=minutes))
     elif 400 <= res.status_code < 500:
         raise GitHubError(res.json()['message'])
-    return res.json()
+    return res
+
+
+def github_request_json(url):
+    return github_request(url).json()
+
+
+def github_request_list(url, batch_size=100):
+    res = github_request('%s?per_page=%d' % (url, batch_size))
+    result = res.json()
+    for page in itertools.count(2):
+        if 'rel="next"' not in res.headers.get('Link', ''):
+            break
+        res = github_request('%s?per_page=%d&page=%d' % (url, batch_size, page))
+        result.extend(res.json())
+    return result
 
 
 #
@@ -395,14 +411,27 @@ class Project(object):
             return None
         url = 'https://api.github.com/repos/{owner}/{name}'.format(
             owner=self.owner, name=self.name)
-        # Returns number of issues plus number of pull requests
-        return github_request(url)['open_issues_count']
+        return github_request_json(url)['open_issues_count']
 
     @reify
     def issues_url(self):
         if not self.is_on_github:
             return None
         return '{base}/issues'.format(base=self.url)
+
+    @reify
+    def open_pulls_count(self):
+        if not self.is_on_github:
+            return None
+        url = 'https://api.github.com/repos/{owner}/{name}/pulls'.format(
+            owner=self.owner, name=self.name)
+        return len(github_request_list(url))
+
+    @reify
+    def pulls_url(self):
+        if not self.is_on_github:
+            return None
+        return '{base}/pulls'.format(base=self.url)
 
 
 def get_projects(update=False):
@@ -477,6 +506,7 @@ template = Template('''\
     <link rel="stylesheet" href="assets/css/bootstrap.min.css">
 
     <style type="text/css">
+      th { white-space: nowrap; }
       td > a > img { position: relative; top: -1px; }
       .tablesorter-icon { color: #ddd; }
       .tablesorter-header { cursor: default; }
@@ -484,7 +514,8 @@ template = Template('''\
       #release-status th:nth-child(3), #release-status td:nth-child(3) { text-align: right; }
       #release-status th:nth-child(4), #release-status td:nth-child(4) { text-align: right; }
       #release-status th:nth-child(5), #release-status td:nth-child(5) { text-align: right; }
-      #maintenance th:nth-child(7), #maintenance td:nth-child(7) { text-align: center; }
+      #maintenance th:nth-child(7), #maintenance td:nth-child(7) { text-align: right; }
+      #maintenance th:nth-child(8), #maintenance td:nth-child(8) { text-align: right; }
       #python-versions span.no,
       #python-versions span.yes {
         padding: 2px 4px 3px 4px;
@@ -565,13 +596,14 @@ template = Template('''\
         <div class="tab-pane" id="maintenance">
           <table class="table table-hover">
             <colgroup>
-              <col>
               <col width="15%">
               <col width="15%">
               <col width="15%">
               <col width="15%">
               <col width="15%">
-              <col width="0">
+              <col width="15%">
+              <col width="5%">
+              <col width="5%">
             </colgroup>
             <thead>
               <tr>
@@ -582,6 +614,7 @@ template = Template('''\
                 <th>Appveyor</th>
                 <th>Coveralls</th>
                 <th>Issues</th>
+                <th>PRs</th>
               </tr>
             </thead>
             <tbody>
@@ -606,6 +639,7 @@ template = Template('''\
                 <td>-</td>
 %     endif
                 <td><a href="${project.issues_url}">${project.open_issues_count}</a></td>
+                <td><a href="${project.pulls_url}">${project.open_pulls_count}</a></td>
               </tr>
 % endfor
             </tbody>
@@ -699,7 +733,13 @@ template = Template('''\
           theme: "bootstrap",
           widgets: ['uitheme'],
           widthFixed: true,
-          headerTemplate: '{content} {icon}',
+          headerTemplate: ' {content} {icon}',
+          onRenderHeader: function(idx, config, table) {
+            if (idx >= 6) {
+              var $this = $(this);
+              $this.find('div').prepend($this.find('i'));
+            }
+          },
           sortList: [[0, 0]],
           textExtraction: {
             5: function(node, table, cellIndex) { return $(node).attr('data-coverage'); }
