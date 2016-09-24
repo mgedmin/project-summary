@@ -74,6 +74,24 @@ class reify(object):
         return value
 
 
+def to_seconds(value):
+    units = {
+        1: ('s', 'sec', 'second', 'seconds'),
+        60: ('m', 'min', 'minute', 'minutes'),
+        3600: ('h', 'hour', 'hours'),
+    }
+    s = value.replace(' ', '')
+    if s.isdigit():
+        return int(s)
+    for multiplier, suffixes in units.items():
+        for suffix in suffixes:
+            if s.endswith(suffix):
+                prefix = s[:-len(suffix)]
+                if prefix.isdigit():
+                    return int(prefix) * multiplier
+    raise ValueError('bad time: %s' % value)
+
+
 #
 # Data extraction
 #
@@ -816,6 +834,8 @@ def main():
                         help='cache HTTP requests on disk in an sqlite database (default: .httpcache)')
     parser.add_argument('--no-http-cache', action='store_false', dest='http_cache',
                         help='disable HTTP disk caching')
+    parser.add_argument('--cache-duration', default='30m',
+                        help='how long to cache HTTP requests (default: 30m)')
     parser.add_argument('--update', action='store_true',
                         help='run git fetch in each project')
     args = parser.parse_args()
@@ -826,10 +846,12 @@ def main():
                  logging.ERROR)
 
     if args.http_cache:
-        log.debug('caching HTTP requests for 5 minutes')
-        requests_cache.install_cache(args.http_cache,
-                                     backend='sqlite',
-                                     expire_after=300)
+        log.debug('caching HTTP requests for %s', args.cache_duration)
+        requests_cache.install_cache(
+            args.http_cache,
+            backend='sqlite',
+            expire_after=to_seconds(args.cache_duration)
+        )
 
     if args.html:
         try:

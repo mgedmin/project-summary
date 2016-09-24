@@ -1,4 +1,12 @@
+.PHONY: all
 all: bin/pip bin/summary
+
+.PHONY: test
+test: bin/py.test
+	bin/py.test tests.py
+
+bin:
+	mkdir bin
 
 bin/summary: setup.py | bin/pip
 	bin/pip install -e .
@@ -8,8 +16,9 @@ bin/pip: | bin
 	virtualenv .env
 	ln -sfr .env/bin/pip bin/
 
-bin:
-	mkdir bin
+bin/py.test: | bin/pip
+	bin/pip install pytest
+	ln -sfr .env/bin/py.test bin/
 
 bin/bower: | bin
 	npm install bower
