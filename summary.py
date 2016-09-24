@@ -426,12 +426,17 @@ class Project(object):
         return get_supported_python_versions(self.working_tree)
 
     @reify
-    def open_issues_count(self):
+    def github_issues(self):
         if not self.is_on_github:
-            return None
-        url = 'https://api.github.com/repos/{owner}/{name}'.format(
+            return []
+        url = 'https://api.github.com/repos/{owner}/{name}/issues'.format(
             owner=self.owner, name=self.name)
-        return github_request_json(url)['open_issues_count']
+        return github_request_list(url)
+
+    @reify
+    def open_issues_count(self):
+        return sum(1 for issue in self.github_issues
+                   if 'pull_request' not in issue)
 
     @reify
     def issues_url(self):
@@ -441,11 +446,10 @@ class Project(object):
 
     @reify
     def open_pulls_count(self):
+        return sum(1 for issue in self.github_issues
+                   if 'pull_request' in issue)
         if not self.is_on_github:
             return None
-        url = 'https://api.github.com/repos/{owner}/{name}/pulls'.format(
-            owner=self.owner, name=self.name)
-        return len(github_request_list(url))
 
     @reify
     def pulls_url(self):
