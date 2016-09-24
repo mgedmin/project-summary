@@ -2,9 +2,11 @@ all: bin/pip bin/summary
 
 bin/summary: setup.py | bin/pip
 	bin/pip install -e .
+	ln -sfr .env/bin/summary bin/
 
-bin/pip:
-	virtualenv .
+bin/pip: | bin
+	virtualenv .env
+	ln -sfr .env/bin/pip bin/
 
 bin:
 	mkdir bin
