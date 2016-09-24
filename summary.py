@@ -187,10 +187,15 @@ def get_supported_python_versions(repo_path):
     prefix = 'Programming Language :: Python :: '
     impl_prefix = 'Programming Language :: Python :: Implementation :: '
     cpython = impl_prefix + 'CPython'
-    return [s[len(prefix):] for s in classifiers if s.startswith(prefix)
-            and s[len(prefix):len(prefix) + 1].isdigit()] + \
-           [s[len(impl_prefix):] for s in classifiers
-            if s.startswith(impl_prefix) and s != cpython]
+    return [
+        s[len(prefix):]
+        for s in classifiers
+        if s.startswith(prefix) and s[len(prefix):len(prefix) + 1].isdigit()
+    ] + [
+        s[len(impl_prefix):]
+        for s in classifiers
+        if s.startswith(impl_prefix) and s != cpython
+    ]
 
 
 def simplify_python_versions(versions):
@@ -287,7 +292,7 @@ class Project(object):
         # Shields.io gives me 18px-high SVG and PNG images in the old style
         # and 20px-high in the flat style with ?style=flat
         # but these are slower and sometimes even fail to load
-        ## template = '//img.shields.io/travis/{owner}/{name}/master.svg'
+        # template = '//img.shields.io/travis/{owner}/{name}/master.svg'
         return template.format(name=self.name, owner=self.owner, branch=self.branch)
 
     @property
