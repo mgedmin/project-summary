@@ -1,7 +1,7 @@
 # This file lists glob patterns for project checkouts.
 # Missing directories or non-Git checkouts are ignored (silently).
 
-# Configuration for debesis.gedmin.as (production)
+# Configuration for projects.gedmin.as (production)
 /var/lib/jenkins/jobs/*/workspace
 
 # Configuration for my machine (development)
