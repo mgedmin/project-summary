@@ -426,7 +426,7 @@ class Project(object):
         return get_supported_python_versions(self.working_tree)
 
     @reify
-    def github_issues(self):
+    def github_issues_and_pulls(self):
         if not self.is_on_github:
             return []
         url = 'https://api.github.com/repos/{owner}/{name}/issues'.format(
@@ -434,9 +434,22 @@ class Project(object):
         return github_request_list(url)
 
     @reify
+    def github_issues(self):
+        return [issue for issue in self.github_issues_and_pulls
+                if 'pull_request' not in issue]
+
+    @reify
+    def github_pulls(self):
+        return [issue for issue in self.github_issues_and_pulls
+                if 'pull_request' in issue]
+
+    @reify
     def open_issues_count(self):
-        return sum(1 for issue in self.github_issues
-                   if 'pull_request' not in issue)
+        return len(self.github_issues)
+
+    @reify
+    def unlabeled_open_issues_count(self):
+        return sum(1 for issue in self.github_issues if not issue['labels'])
 
     @reify
     def issues_url(self):
@@ -446,10 +459,11 @@ class Project(object):
 
     @reify
     def open_pulls_count(self):
-        return sum(1 for issue in self.github_issues
-                   if 'pull_request' in issue)
-        if not self.is_on_github:
-            return None
+        return len(self.github_pulls)
+
+    @reify
+    def unlabeled_open_pulls_count(self):
+        return sum(1 for issue in self.github_pulls if not issue['labels'])
 
     @reify
     def pulls_url(self):
@@ -662,8 +676,8 @@ template = Template('''\
 %     else:
                 <td>-</td>
 %     endif
-                <td><a href="${project.issues_url}">${project.open_issues_count}</a></td>
-                <td><a href="${project.pulls_url}">${project.open_pulls_count}</a></td>
+                <td data-total="${project.open_issues_count}" data-new=${project.unlabeled_open_issues_count}><a href="${project.issues_url}">${project.unlabeled_open_issues_count} (${project.open_issues_count})</a></td>
+                <td data-total="${project.open_pulls_count}" data-new=${project.unlabeled_open_pulls_count}><a href="${project.pulls_url}">${project.unlabeled_open_pulls_count} (${project.open_pulls_count})</a></td>
               </tr>
 % endfor
             </tbody>
@@ -753,6 +767,13 @@ template = Template('''\
             2: function(node, table, cellIndex) { return $(node).attr('title'); }
           }
         });
+        var sortCoverage = function(node, table, cellIndex) {
+          return $(node).attr('data-coverage');
+        };
+        var sortIssues = function(node, table, cellIndex) {
+          /* note this can't start with a digit or tablesorter will discard the 2nd sort key */
+          return 'new ' + $(node).attr('data-new') + ' old ' + $(node).attr('data-total');
+        };
         $("#maintenance table").tablesorter({
           theme: "bootstrap",
           widgets: ['uitheme'],
@@ -766,7 +787,9 @@ template = Template('''\
           },
           sortList: [[0, 0]],
           textExtraction: {
-            5: function(node, table, cellIndex) { return $(node).attr('data-coverage'); }
+            5: sortCoverage,
+            6: sortIssues,
+            7: sortIssues
           }
         });
         $("#python-versions table").tablesorter({
