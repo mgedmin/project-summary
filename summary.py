@@ -676,8 +676,8 @@ template = Template('''\
 %     else:
                 <td>-</td>
 %     endif
-                <td data-total="${project.open_issues_count}" data-new=${project.unlabeled_open_issues_count}><a href="${project.issues_url}">${project.unlabeled_open_issues_count} (${project.open_issues_count})</a></td>
-                <td data-total="${project.open_pulls_count}" data-new=${project.unlabeled_open_pulls_count}><a href="${project.pulls_url}">${project.unlabeled_open_pulls_count} (${project.open_pulls_count})</a></td>
+                <td data-total="${project.open_issues_count}" data-new=${project.unlabeled_open_issues_count}><a href="${project.issues_url}" title="${project.unlabeled_open_issues_count} new, ${project.open_issues_count} total">${project.unlabeled_open_issues_count} (${project.open_issues_count})</a></td>
+                <td data-total="${project.open_pulls_count}" data-new=${project.unlabeled_open_pulls_count}><a href="${project.pulls_url}" title="${project.unlabeled_open_pulls_count} new, ${project.open_pulls_count} total">${project.unlabeled_open_pulls_count} (${project.open_pulls_count})</a></td>
               </tr>
 % endfor
             </tbody>
