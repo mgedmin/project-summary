@@ -17,7 +17,7 @@ setup(
     version=version,
     author='Marius Gedminas',
     author_email='marius@gedmin.as',
-    url='http://github.com/mgedmin/project-summary/',
+    url='https://github.com/mgedmin/project-summary/',
     description='Script to generate a summary page for all my projects',
     long_description=long_description,
     classifiers=[
@@ -27,8 +27,9 @@ setup(
         'License :: OSI Approved :: GNU General Public License (GPL)',
         'Operating System :: POSIX',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.2',
-        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
         'Private :: Do Not Upload To PyPI',  # it rejects unknown classifiers ;)
     ],
     license='GPL',
