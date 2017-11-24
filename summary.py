@@ -472,10 +472,12 @@ class Project(object):
         return '{base}/pulls'.format(base=self.url)
 
 
-def get_projects(update=False):
+def get_projects(update=False, skip_branches=False):
     for path in get_repos():
         p = Project(path)
         if p.name in IGNORE:
+            continue
+        if skip_branches and p.branch != 'master':
             continue
         if update:
             p.update()
@@ -526,6 +528,7 @@ def Template(*args, **kw):
     return mako.template.Template(error_handler=mako_error_handler,
                                   default_filters=['unicode', 'h'],
                                   *args, **kw)
+
 
 #
 # Report generation
@@ -854,6 +857,8 @@ def main():
                         version="%(prog)s version " + __version__)
     parser.add_argument('-v', '--verbose', action='count',
                         help='be more verbose (can be repeated)')
+    parser.add_argument('--skip-branches', action='store_true',
+                        help="ignore checkouts that aren't of the main branch")
     parser.add_argument('--html', action='store_true',
                         help='produce HTML output')
     parser.add_argument('-o', metavar='FILENAME', dest='output_file',
@@ -882,9 +887,10 @@ def main():
             expire_after=to_seconds(args.cache_duration)
         )
 
+    projects = get_projects(args.update, args.skip_branches)
     if args.html:
         try:
-            print_html_report(get_projects(args.update), args.output_file)
+            print_html_report(projects, args.output_file)
         except GitHubError as e:
             sys.exit("GitHub error: %s" % e)
         except Exception:
@@ -895,7 +901,7 @@ def main():
     else:
         if args.output_file:
             print("warning: --output-file ignored in non-HTML mode")
-        print_report(get_projects(args.update), args.verbose)
+        print_report(projects, args.verbose)
 
 
 def print_report(projects, verbose):
