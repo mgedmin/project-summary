@@ -30,7 +30,7 @@ Setup
 - symlink /var/lib/jenkins/jobs/project-summary/assets and index.html
   into /var/www/projects.gedmin.as/
 - set up Apache to serve /var/www/projects.gedmin.as at
-  http://projects.gedmin.as/
+  https://projects.gedmin.as/
 
 
 Can anyone else use this?
