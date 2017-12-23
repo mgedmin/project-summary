@@ -557,6 +557,8 @@ template = Template('''\
       #release-status th:nth-child(5), #release-status td:nth-child(5) { text-align: right; }
       #maintenance th:nth-child(7), #maintenance td:nth-child(7) { text-align: right; }
       #maintenance th:nth-child(8), #maintenance td:nth-child(8) { text-align: right; }
+      #maintenance span.new { text-weight: bold; }
+      #maintenance span.none { color: #999; }
       #python-versions span.no,
       #python-versions span.yes {
         padding: 2px 4px 3px 4px;
@@ -589,6 +591,21 @@ template = Template('''\
 % if project.branch != 'master':
  (${project.branch})\\
 % endif
+</%def>
+
+<%def name="issues(new_count, total_count, url)">\\
+<a href="${url}" title="${new_count} new, ${total_count} total">\\
+% if new_count == 0:
+<span class="none">${new_count}</span> \\
+% else:
+<span class="new">${new_count}</span> \\
+% endif
+% if total_count == 0:
+<span class="none">(${total_count})</span>\\
+% else:
+(${total_count})\\
+% endif
+</a>\\
 </%def>
 
   <body role="document">
@@ -679,8 +696,9 @@ template = Template('''\
 %     else:
                 <td>-</td>
 %     endif
-                <td data-total="${project.open_issues_count}" data-new=${project.unlabeled_open_issues_count}><a href="${project.issues_url}" title="${project.unlabeled_open_issues_count} new, ${project.open_issues_count} total">${project.unlabeled_open_issues_count} (${project.open_issues_count})</a></td>
-                <td data-total="${project.open_pulls_count}" data-new=${project.unlabeled_open_pulls_count}><a href="${project.pulls_url}" title="${project.unlabeled_open_pulls_count} new, ${project.open_pulls_count} total">${project.unlabeled_open_pulls_count} (${project.open_pulls_count})</a></td>
+%     for new_count, total_count, url in [(project.unlabeled_open_issues_count, project.open_issues_count, project.issues_url), (project.unlabeled_open_pulls_count, project.open_pulls_count, project.pulls_url)]:
+                <td data-total="${total_count}" data-new=${new_count}>${issues(new_count, total_count, url)}</td>
+%     endfor
               </tr>
 % endfor
             </tbody>
