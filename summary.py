@@ -557,7 +557,7 @@ template = Template('''\
       #release-status th:nth-child(5), #release-status td:nth-child(5) { text-align: right; }
       #maintenance th:nth-child(7), #maintenance td:nth-child(7) { text-align: right; }
       #maintenance th:nth-child(8), #maintenance td:nth-child(8) { text-align: right; }
-      #maintenance span.new { text-weight: bold; }
+      #maintenance span.new { font-weight: bold; }
       #maintenance span.none { color: #999; }
       #python-versions span.no,
       #python-versions span.yes {
