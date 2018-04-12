@@ -305,6 +305,10 @@ class Project(object):
             return os.path.basename(self.working_tree)
 
     @property
+    def pypi_url(self):
+        return 'https://pypi.org/project/{name}/'.format(name=self.name)
+
+    @property
     def jenkins_job(self):
         if os.path.basename(self.working_tree) == 'workspace':
             return os.path.basename(os.path.dirname(self.working_tree))
@@ -637,7 +641,7 @@ template = Template('''\
 % for project in projects:
               <tr>
                 <td>${project_name(project)}</td>
-                <td>${project.last_tag}</td>
+                <td><a href="${project.pypi_url}">${project.last_tag}</a></td>
                 <td title="${project.last_tag_date}">${nice_date(project.last_tag_date)}</td>
                 <td><a href="${project.compare_url}">${pluralize(len(project.pending_commits), 'commits')}</a></td>
 %     if project.travis_url:
