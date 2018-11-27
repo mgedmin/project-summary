@@ -4,5 +4,8 @@
 # Configuration for projects.gedmin.as (production)
 /var/lib/jenkins/jobs/*/workspace
 
+# Configuration for projects.gedmin.as (future production)
+/srv/project-summary/*
+
 # Configuration for my machine (development)
 ~/projects/*
