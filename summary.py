@@ -23,7 +23,7 @@ import requests_cache
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.9.0.dev0'
+__version__ = '0.10.0'
 
 here = os.path.dirname(__file__)
 log = logging.getLogger('project-summary')
@@ -249,6 +249,9 @@ class Project(object):
 
     def update(self):
         pipe('git', 'fetch', '--prune', cwd=self.working_tree)
+
+    def pull(self):
+        pipe('git', 'pull', '--prune', cwd=self.working_tree)
 
     @reify
     def url(self):
@@ -476,7 +479,7 @@ class Project(object):
         return '{base}/pulls'.format(base=self.url)
 
 
-def get_projects(update=False, skip_branches=False):
+def get_projects(update=False, pull=False, skip_branches=False):
     for path in get_repos():
         p = Project(path)
         if p.name in IGNORE:
@@ -485,6 +488,8 @@ def get_projects(update=False, skip_branches=False):
             continue
         if update:
             p.update()
+        if pull:
+            p.pull()
         if p.last_tag:
             yield p
 
@@ -894,6 +899,8 @@ def main():
                         help='how long to cache HTTP requests (default: 30m)')
     parser.add_argument('--update', action='store_true',
                         help='run git fetch in each project')
+    parser.add_argument('--pull', action='store_true',
+                        help='run git pull in each project')
     args = parser.parse_args()
 
     log.addHandler(logging.StreamHandler())
