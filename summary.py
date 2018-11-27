@@ -219,7 +219,7 @@ def get_pending_commits(repo_path, last_tag, branch='master'):
 
 
 def get_supported_python_versions(repo_path):
-    classifiers = pipe("python", "setup.py", "--classifiers", cwd=repo_path).splitlines()
+    classifiers = pipe(sys.executable, "setup.py", "--classifiers", cwd=repo_path).splitlines()
     prefix = 'Programming Language :: Python :: '
     impl_prefix = 'Programming Language :: Python :: Implementation :: '
     cpython = impl_prefix + 'CPython'
