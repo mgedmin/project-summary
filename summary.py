@@ -43,6 +43,15 @@ IGNORE = []
 # is terrible :(
 APPVEYOR_ACCOUNT = 'mgedmin'
 
+# Include Jenkins links?
+JENKINS = True
+
+# Base url for Jenkins
+JENKINS_URL = 'https://jenkins.gedmin.as'
+
+# Include Jenkins links for {name}-on-windows jobs?
+JENKINS_WINDOWS = True
+
 # Some HTML to show in the footer of the generated page
 FOOTER = '''
 An incomplete list of FOSS projects maintained by <a href="https://github.com/mgedmin">@mgedmin</a>.
@@ -275,7 +284,8 @@ class Project(object):
 
     @property
     def uses_jenkins(self):
-        return self.owner in ('mgedmin', 'gtimelog')
+        # How can I determine this?
+        return True
 
     @reify
     def branch(self):
@@ -406,27 +416,29 @@ class Project(object):
     def jenkins_image_url(self):
         if not self.uses_jenkins:
             return None
-        return 'https://jenkins.gedmin.as/job/{name}/badge/icon'.format(name=self.jenkins_job)
+        return '{base}/job/{name}/badge/icon'.format(base=JENKINS_URL,
+                                                     name=self.jenkins_job)
 
     @property
     def jenkins_url(self):
         if not self.uses_jenkins:
             return None
-        return 'https://jenkins.gedmin.as/job/{name}/'.format(name=self.jenkins_job)
+        return '{base}/job/{name}/'.format(base=JENKINS_URL,
+                                           name=self.jenkins_job)
 
     @property
     def jenkins_image_url_windows(self):
         if not self.uses_jenkins:
             return None
         job = self.jenkins_job + '-on-windows'
-        return 'https://jenkins.gedmin.as/job/{name}/badge/icon'.format(name=job)
+        return '{base}/job/{name}/badge/icon'.format(base=JENKINS_URL, name=job)
 
     @property
     def jenkins_url_windows(self):
         if not self.uses_jenkins:
             return None
         job = self.jenkins_job + '-on-windows'
-        return 'https://jenkins.gedmin.as/job/{name}/'.format(name=job)
+        return '{base}/job/{name}/'.format(base=JENKINS_URL, name=job)
 
     @reify
     def python_versions(self):
@@ -665,8 +677,12 @@ template = Template('''\
             <colgroup>
               <col width="15%">
               <col width="15%">
+% if jenkins:
               <col width="15%">
+% endif
+% if jenkins_windows:
               <col width="15%">
+% endif
               <col width="15%">
               <col width="15%">
               <col width="5%">
@@ -676,8 +692,12 @@ template = Template('''\
               <tr>
                 <th>Name</th>
                 <th>Travis CI</th>
+% if jenkins:
                 <th>Jenkins (Linux)</th>
+% endif
+% if jenkins_windows:
                 <th>Jenkins (Windows)</th>
+% endif
                 <th>Appveyor</th>
                 <th>Coveralls</th>
                 <th>Issues</th>
@@ -693,8 +713,12 @@ template = Template('''\
 %     else:
                 <td>-</td>
 %     endif
+%     if jenkins:
                 <td><a href="${project.jenkins_url}"><img src="${project.jenkins_image_url}" alt="Jenkins Status"></a></td>
+%     endif
+%     if jenkins_windows:
                 <td><a href="${project.jenkins_url_windows}"><img src="${project.jenkins_image_url_windows}" alt="Jenkins (Windows)"></a></td>
+%     endif
 %     if project.appveyor_url:
                 <td><a href="${project.appveyor_url}"><img src="${project.appveyor_image_url}" alt="Build Status (Windows)"></a></td>
 %     else:
@@ -950,6 +974,8 @@ def print_html_report(projects, filename=None):
     # I want atomicity: don't destroy old .html file if an exception happens
     # during rendering.
     html = template.render_unicode(projects=list(projects),
+                                   jenkins=JENKINS,
+                                   jenkins_windows=JENKINS_WINDOWS,
                                    footer=FOOTER,
                                    nice_date=nice_date,
                                    pluralize=pluralize)
