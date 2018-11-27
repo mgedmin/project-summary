@@ -33,14 +33,29 @@ Setup
   https://projects.gedmin.as/
 
 
+Alternative setup (no Jenkins)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- check out this repository somewhere (e.g. /opt/project-summary)
+- check out all your projects somewhere else (e.g. under /srv/project-summary/)
+- create a cron script to run::
+
+    cd /opt/project-summary && make -s && bin/summary --pull --html -o index.html
+
+- create /var/www/projects.gedmin.as/
+- symlink /opt/project-summary/assets and index.html
+  into /var/www/projects.gedmin.as/
+- set up Apache to serve /var/www/projects.gedmin.as at
+  https://projects.gedmin.as/
+
+
 Can anyone else use this?
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Probably!  Don't hesitate to file bugs (or pull requests) asking for more
-configurability.
+configurability, or for a release to PyPI.
 
-Currently all the configuration is hardcoded near the top of ``summary.py``
-and in ``repos.txt``.  It should be moved to a config file.
+Check out project-summary.cfg for the current configuration options.
 
 
 Note on HTTP request caching
@@ -52,7 +67,7 @@ called ``.httpcache.sqlite``.
 This is because I run the script rather often while I'm developing it,
 and without caching I'd run into GitHub's public API rate limits (60
 requests per hour) very quickly.  The default cache duration lets me have
-up to 15 projects, which is exactly the number that I have. ;)
+up to 15 projects.
 
 You can change the cache duration by specifying, e.g. ``--cache-duration 5m``
 (valid units are seconds, minutes and hours and can be abbreviated to
