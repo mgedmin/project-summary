@@ -770,7 +770,7 @@ template = Template('''\
           </table>
         </div>
 
-<% versions = ['2.7', '3.4', '3.5', '3.6', '3.7', 'PyPy'] %>
+<% versions = ['2.7', '3.5', '3.6', '3.7', 'PyPy'] %>
         <div class="tab-pane" id="python-versions">
           <table class="table table-hover">
             <thead>
