@@ -699,7 +699,7 @@ template = Template('''\
                 <td title="${project.last_tag_date}">${nice_date(project.last_tag_date)}</td>
                 <td><a href="${project.compare_url}">${pluralize(len(project.pending_commits), 'commits')}</a></td>
 %     if project.travis_url:
-                <td><a href="${project.travis_url}"><img src="${project.travis_image_url}" alt="Build Status"></a></td>
+                <td><a href="${project.travis_url}"><img src="${project.travis_image_url}" alt="Build Status" height="20"></a></td>
 %     else:
                 <td>-</td>
 %     endif
@@ -740,24 +740,24 @@ template = Template('''\
               <tr>
                 <td>${project_name(project)}</td>
 %     if project.travis_url:
-                <td><a href="${project.travis_url}"><img src="${project.travis_image_url}" alt="Build Status"></a></td>
+                <td><a href="${project.travis_url}"><img src="${project.travis_image_url}" alt="Build Status" height="20"></a></td>
 %     else:
                 <td>-</td>
 %     endif
 % for job in config.jenkins_jobs:
 %     if project.uses_jenkins:
-                <td><a href="${project.get_jenkins_url(job)}"><img src="${project.get_jenkins_image_url(job)}" alt="Jenkins Status"></a></td>
+                <td><a href="${project.get_jenkins_url(job)}"><img src="${project.get_jenkins_image_url(job)}" alt="Jenkins Status" height="20"></a></td>
 %     else:
                 <td>-</td>
 %     endif
 % endfor
 %     if project.appveyor_url:
-                <td><a href="${project.appveyor_url}"><img src="${project.appveyor_image_url}" alt="Build Status (Windows)"></a></td>
+                <td><a href="${project.appveyor_url}"><img src="${project.appveyor_image_url}" alt="Build Status (Windows)" height="20"></a></td>
 %     else:
                 <td>-</td>
 %     endif
 %     if project.coveralls_url:
-                <td data-coverage="${project.coverage()}"><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="Test Coverage: ${project.coverage('{}%', 'unknown')}"></a></td>
+                <td data-coverage="${project.coverage()}"><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="Test Coverage: ${project.coverage('{}%', 'unknown')}" height="20"></a></td>
 %     else:
                 <td>-</td>
 %     endif
@@ -794,7 +794,7 @@ template = Template('''\
 %         endif
 %     endfor
 %     if project.coveralls_url:
-                <td data-coverage="${project.coverage()}"><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="Test Coverage: ${project.coverage('{}%', 'unknown')}"></a></td>
+                <td data-coverage="${project.coverage()}"><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="Test Coverage: ${project.coverage('{}%', 'unknown')}" height="20"></a></td>
 %     else:
                 <td>-</td>
 %     endif
