@@ -257,6 +257,14 @@ def get_branch_name(repo_path):
                     name = name[len('origin/'):]
             if name != 'HEAD':
                 return name
+    # okay, we have a _stale_ detached head, Jenkins must be dropping
+    # github notifications again!
+    for line in pipe("git", "branch", "-r", "--contains", name, cwd=repo_path, stderr=subprocess.PIPE).splitlines():
+        line = line[2:].strip()
+        if name.startswith('origin/'):
+            name = name[len('origin/'):]
+        if 'HEAD detached at' not in name:
+            return name
     return '(detached)'
 
 
