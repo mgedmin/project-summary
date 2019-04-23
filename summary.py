@@ -1006,7 +1006,7 @@ def main():
 
 def print_report(projects, verbose):
     for project in projects:
-        print("{name:20} {commits:4} commits since {release:6} ({date})".format(
+        print("{name:24} {commits:4} commits since {release:6} ({date})".format(
             name=project.name, commits=len(project.pending_commits),
             release=project.last_tag, date=nice_date(project.last_tag_date)))
         if verbose >= 1:
