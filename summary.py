@@ -186,11 +186,16 @@ def github_request_json(url):
 def github_request_list(url, batch_size=100):
     res = github_request('%s?per_page=%d' % (url, batch_size))
     result = res.json()
+    assert isinstance(result, list), result
     for page in itertools.count(2):
         if 'rel="next"' not in res.headers.get('Link', ''):
             break
         res = github_request('%s?per_page=%d&page=%d' % (url, batch_size, page))
-        result.extend(res.json())
+        batch = res.json()
+        assert isinstance(batch, list), (page, batch)
+        result.extend(batch)
+    for item in result:
+        assert isinstance(item, dict), result
     return result
 
 
