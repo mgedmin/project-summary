@@ -784,13 +784,24 @@ template = Template('''\
         </div>
 
 <% versions = ['2.7', '3.5', '3.6', '3.7', 'PyPy'] %>
+<% eol_date = {
+    # https://devguide.python.org/#status-of-python-branches
+    '2.7': '2020-01-01',
+    '3.5': '2020-09-13',
+    '3.6': '2021-12-23',
+    '3.7': '2023-12-23',
+} %>
         <div class="tab-pane" id="python-versions">
           <table class="table table-hover">
             <thead>
               <tr>
                 <th>Name</th>
 % for ver in versions:
+%     if ver in eol_date:
+                <th title="Supported until ${eol_date[ver]}">${ver}</th>
+%     else:
                 <th>${ver}</th>
+%     endif
 % endfor
                 <th>Test coverage</th>
               </tr>
