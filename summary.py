@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 """
 Generate a summary for all my projects.
 """
@@ -874,6 +874,12 @@ template = Template('''\
             even         : '',
             odd          : ''
           });
+        var sortTitleAttribute = function(node, table, cellIndex) {
+          return $(node).attr('title');
+        };
+        var sortAltText = function(node, table, cellIndex) {
+          return $(node).attr('alt');
+        };
         $("#release-status table").tablesorter({
           theme: "bootstrap",
           widgets: ['uitheme'],
@@ -887,7 +893,8 @@ template = Template('''\
           },
           sortList: [[0, 0]],
           textExtraction: {
-            2: function(node, table, cellIndex) { return $(node).attr('title'); }
+            2: sortTitleAttribute,  // ISO-8601 date in title
+            4: sortAltText          // build status in alt text
           }
         });
         var sortCoverage = function(node, table, cellIndex) {
@@ -910,9 +917,13 @@ template = Template('''\
           },
           sortList: [[0, 0]],
           textExtraction: {
-            5: sortCoverage,
-            6: sortIssues,
-            7: sortIssues
+            1: sortAltText, // travis ci build status in alt text
+            2: sortAltText, // jenkins build status in alt text
+            3: sortAltText, // jenkins build status in alt text
+            4: sortAltText, // appveyor build status in alt text
+            5: sortCoverage, // coverage percentage in data attribute
+            6: sortIssues, // issue counts in data attributes
+            7: sortIssues  // PR counts in data attributes
           }
         });
         $("#python-versions table").tablesorter({
@@ -922,7 +933,7 @@ template = Template('''\
           headerTemplate: '{content} {icon}',
           sortList: [[0, 0]],
           textExtraction: {
-            ${1 + len(versions)}: function(node, table, cellIndex) { return $(node).attr('data-coverage'); }
+            ${1 + len(versions)}: sortCoverage
           }
         });
         var dont_recurse = false;
