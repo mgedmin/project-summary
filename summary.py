@@ -10,6 +10,7 @@ import linecache
 import logging
 import math
 import os
+import re
 import subprocess
 import sys
 import time
@@ -34,7 +35,7 @@ import requests_cache
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.10.1'
+__version__ = '0.11.0'
 
 log = logging.getLogger('project-summary')
 
@@ -403,10 +404,6 @@ class Project(object):
             return None
         # Travis has 20px-high SVG images in the new (flat) style
         template = 'https://api.travis-ci.org/{owner}/{name}.svg?branch={branch}'
-        # Shields.io gives me 18px-high SVG and PNG images in the old style
-        # and 20px-high in the flat style with ?style=flat
-        # but these are slower and sometimes even fail to load
-        # template = '//img.shields.io/travis/{owner}/{name}/master.svg'
         return template.format(name=self.name, owner=self.owner, branch=self.branch)
 
     @property
@@ -415,6 +412,22 @@ class Project(object):
             return None
         return 'https://travis-ci.org/{owner}/{name}'.format(name=self.name,
                                                              owner=self.owner)
+
+    @reify
+    def travis_status(self):
+        if not self.uses_travis:
+            return None
+        res = requests.get(self.travis_image_url)
+        # let's parse SVG with regexps, what could go wrong???
+        text_rx = re.compile(r'<text([^>]*)>([^<]*)</text>')
+        status = []
+        for attrs, text in text_rx.findall(res.text):
+            if 'fill-opacity' in attrs:
+                # ignore shadow
+                continue
+            if text != 'build':
+                status.append(text)
+        return ' '.join(status)
 
     @property
     def appveyor_image_url(self):
@@ -712,7 +725,7 @@ template = Template('''\
                 <td title="${project.last_tag_date}">${nice_date(project.last_tag_date)}</td>
                 <td><a href="${project.compare_url}">${pluralize(len(project.pending_commits), 'commits')}</a></td>
 %     if project.travis_url:
-                <td><a href="${project.travis_url}"><img src="${project.travis_image_url}" alt="Build Status" height="20"></a></td>
+                <td><a href="${project.travis_url}"><img src="${project.travis_image_url}" alt="${project.travis_status}" height="20"></a></td>
 %     else:
                 <td>-</td>
 %     endif
@@ -753,7 +766,7 @@ template = Template('''\
               <tr>
                 <td>${project_name(project)}</td>
 %     if project.travis_url:
-                <td><a href="${project.travis_url}"><img src="${project.travis_image_url}" alt="Build Status" height="20"></a></td>
+                <td><a href="${project.travis_url}"><img src="${project.travis_image_url}" alt="${project.travis_status}" height="20"></a></td>
 %     else:
                 <td>-</td>
 %     endif
@@ -818,7 +831,7 @@ template = Template('''\
 %         endif
 %     endfor
 %     if project.coveralls_url:
-                <td data-coverage="${project.coverage()}"><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="${project.coverage('{}%', 'unknown')}" height="20"></a></td>
+                <td data-coverage="${project.coverage()}"><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt=" ${project.coverage('{}%', 'unknown')}" height="20"></a></td>
 %     else:
                 <td>-</td>
 %     endif
@@ -963,7 +976,7 @@ def main():
         description="Summarize release status of several projects")
     parser.add_argument('--version', action='version',
                         version="%(prog)s version " + __version__)
-    parser.add_argument('-v', '--verbose', action='count',
+    parser.add_argument('-v', '--verbose', action='count', default=0,
                         help='be more verbose (can be repeated)')
     parser.add_argument('--skip-branches', action='store_true',
                         help="ignore checkouts that aren't of the main branch")
