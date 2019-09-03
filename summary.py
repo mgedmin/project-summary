@@ -418,14 +418,17 @@ class Project(object):
         if not self.uses_travis:
             return None
         res = requests.get(self.travis_image_url)
+        return self._parse_svg_text(res.text, skip_words={'build'})
+
+    def _parse_svg_text(self, svg_text, skip_words=()):
         # let's parse SVG with regexps, what could go wrong???
         text_rx = re.compile(r'<text([^>]*)>([^<]*)</text>')
         status = []
-        for attrs, text in text_rx.findall(res.text):
+        for attrs, text in text_rx.findall(svg_text):
             if 'fill-opacity' in attrs:
                 # ignore shadow
                 continue
-            if text != 'build':
+            if text not in skip_words:
                 status.append(text)
         return ' '.join(status)
 
@@ -442,6 +445,13 @@ class Project(object):
             return None
         return 'https://ci.appveyor.com/project/{account}/{name}/branch/{branch}'.format(
             name=self.name, account=self.config.appveyor_account, branch=self.branch)
+
+    @reify
+    def appveyor_status(self):
+        if not self.uses_appveyor:
+            return None
+        res = requests.get(self.appveyor_image_url)
+        return self._parse_svg_text(res.text, skip_words={'build'})
 
     @property
     def coveralls_image_url(self):
@@ -778,7 +788,7 @@ template = Template('''\
 %     endif
 % endfor
 %     if project.appveyor_url:
-                <td><a href="${project.appveyor_url}"><img src="${project.appveyor_image_url}" alt="Build Status (Windows)" height="20"></a></td>
+                <td><a href="${project.appveyor_url}"><img src="${project.appveyor_image_url}" alt="${project.appveyor_status}" height="20"></a></td>
 %     else:
                 <td>-</td>
 %     endif
