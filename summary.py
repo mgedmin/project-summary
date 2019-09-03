@@ -512,6 +512,13 @@ class Project(object):
             name=job_config.name_template.format(name=self.jenkins_job),
         )
 
+    def get_jenkins_status(self, job_config=JenkinsJobConfig()):
+        if not self.uses_jenkins:
+            return None
+        url = self.get_jenkins_image_url(job_config)
+        res = requests.get(url)
+        return self._parse_svg_text(res.text, skip_words={'build'})
+
     @reify
     def python_versions(self):
         return get_supported_python_versions(self.working_tree)
@@ -782,7 +789,7 @@ template = Template('''\
 %     endif
 % for job in config.jenkins_jobs:
 %     if project.uses_jenkins:
-                <td><a href="${project.get_jenkins_url(job)}"><img src="${project.get_jenkins_image_url(job)}" alt="Jenkins Status" height="20"></a></td>
+                <td><a href="${project.get_jenkins_url(job)}"><img src="${project.get_jenkins_image_url(job)}" alt="${project.get_jenkins_status(job)}" height="20"></a></td>
 %     else:
                 <td>-</td>
 %     endif
