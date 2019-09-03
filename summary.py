@@ -34,7 +34,7 @@ import requests_cache
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.10.0'
+__version__ = '0.10.1'
 
 log = logging.getLogger('project-summary')
 
@@ -770,7 +770,7 @@ template = Template('''\
                 <td>-</td>
 %     endif
 %     if project.coveralls_url:
-                <td data-coverage="${project.coverage()}"><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="Test Coverage: ${project.coverage('{}%', 'unknown')}" height="20"></a></td>
+                <td data-coverage="${project.coverage()}"><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="${project.coverage('{}%', 'unknown')}" height="20"></a></td>
 %     else:
                 <td>-</td>
 %     endif
@@ -818,7 +818,7 @@ template = Template('''\
 %         endif
 %     endfor
 %     if project.coveralls_url:
-                <td data-coverage="${project.coverage()}"><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="Test Coverage: ${project.coverage('{}%', 'unknown')}" height="20"></a></td>
+                <td data-coverage="${project.coverage()}"><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="${project.coverage('{}%', 'unknown')}" height="20"></a></td>
 %     else:
                 <td>-</td>
 %     endif
