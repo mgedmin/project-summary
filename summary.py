@@ -56,7 +56,7 @@ class reify(object):
 
 def format_cmd(cmd, cwd=None):
     if 'cwd':
-        return 'cd %s && %s' % ('cwd', ' '.join(cmd))
+        return 'cd %s && %s' % (cwd, ' '.join(cmd))
     else:
         return ' '.join(cmd)
 
