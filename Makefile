@@ -5,6 +5,9 @@ all: bin/pip bin/summary
 test: bin/pytest
 	bin/pytest tests.py
 
+clean:
+	rm -rf .env bin .httpcache.sqlite __pycache__ .pytest_cache/ *.egg-info *.pyc
+
 bin:
 	mkdir bin
 

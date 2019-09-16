@@ -10,3 +10,4 @@ bower_components/
 .httpcache.sqlite
 pip-selfcheck.json
 .cache
+.env/
