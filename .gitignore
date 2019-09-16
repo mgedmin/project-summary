@@ -11,3 +11,4 @@ bower_components/
 pip-selfcheck.json
 .cache
 .env/
+.tox/
