@@ -1,6 +1,6 @@
 import pytest
 
-from summary import to_seconds
+from summary import to_seconds, nice_date
 
 
 @pytest.mark.parametrize(['input', 'expected'], [
@@ -19,3 +19,7 @@ from summary import to_seconds
 ])
 def test_to_seconds(input, expected):
     assert to_seconds(input) == expected
+
+
+def test_nice_date():
+    nice_date("2019-06-06 17:43:14 +0300")  # should not raise

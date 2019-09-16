@@ -1008,7 +1008,7 @@ template = Template('''\
 
 def nice_date(date_string):
     # specify format because https://github.com/crsmithdev/arrow/issues/82
-    return arrow.get(date_string, 'YYYY-MM-DD HH:mm:ss ZZ').humanize()
+    return arrow.get(date_string, 'YYYY-MM-DD HH:mm:ss Z').humanize()
 
 
 def pluralize(number, noun):
