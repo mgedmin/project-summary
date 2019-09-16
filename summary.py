@@ -35,7 +35,7 @@ import requests_cache
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.11.0'
+__version__ = '0.11.1'
 
 log = logging.getLogger('project-summary')
 
@@ -54,13 +54,27 @@ class reify(object):
         return value
 
 
-def pipe(*cmd, **kwargs):
-    if 'cwd' in kwargs:
-        log.debug('EXEC cd %s && %s', kwargs['cwd'], ' '.join(cmd))
+def format_cmd(cmd, cwd=None):
+    if 'cwd':
+        return 'cd %s && %s' % ('cwd', ' '.join(cmd))
     else:
-        log.debug('EXEC %s', ' '.join(cmd))
+        return ' '.join(cmd)
+
+
+def pipe(*cmd, **kwargs):
+    log.debug('EXEC %s', format_cmd(cmd, kwargs.get('cwd')))
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, **kwargs)
-    return p.communicate()[0].decode('UTF-8', 'replace')
+    stdout, stderr = p.communicate()
+    if p.returncode:
+        log.warning('%s produced a non-zero exit code: %d',
+                    format_cmd(cmd, kwargs.get('cwd')),
+                    p.returncode)
+    if stderr:
+        log.log(logging.WARNING if p.returncode else logging.INFO,
+                '%s produced output on stderr:\n%s',
+                format_cmd(cmd, kwargs.get('cwd')),
+                stderr.decode('UTF-8', 'replace'))
+    return stdout.decode('UTF-8', 'replace')
 
 
 def to_seconds(value):
@@ -324,6 +338,11 @@ class Project(object):
 
     def pull(self):
         pipe('git', 'pull', '--prune', cwd=self.working_tree)
+
+    def precompute(self, attrs):
+        # trigger all the @reify decorators
+        for attr in attrs:
+            getattr(self, attr)
 
     @reify
     def url(self):
@@ -1063,6 +1082,11 @@ def main():
 
 def print_report(projects, verbose):
     for project in projects:
+        project.precompute('name pending_commits last_tag last_tag_date'.split())
+        if verbose >= 1:
+            project.precompute('compare_url python_versions'.split())
+        if verbose >= 2:
+            project.precompute('working_tree'.split())
         print("{name:24} {commits:4} commits since {release:6} ({date})".format(
             name=project.name, commits=len(project.pending_commits),
             release=project.last_tag, date=nice_date(project.last_tag_date)))
