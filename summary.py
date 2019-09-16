@@ -62,14 +62,15 @@ def format_cmd(cmd, cwd=None):
 
 
 def pipe(*cmd, **kwargs):
+    ignore_errors = kwargs.pop('ignore_errors', False)
     log.debug('EXEC %s', format_cmd(cmd, kwargs.get('cwd')))
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, **kwargs)
     stdout, stderr = p.communicate()
-    if p.returncode:
+    if p.returncode and not ignore_errors:
         log.warning('%s produced a non-zero exit code: %d',
                     format_cmd(cmd, kwargs.get('cwd')),
                     p.returncode)
-    if stderr:
+    if stderr and not ignore_errors:
         log.log(logging.WARNING if p.returncode else logging.INFO,
                 '%s produced output on stderr:\n%s',
                 format_cmd(cmd, kwargs.get('cwd')),
@@ -290,7 +291,7 @@ def get_branch_name(repo_path):
 
 def get_last_tag(repo_path):
     return pipe("git", "describe", "--tags", "--abbrev=0",
-                cwd=repo_path, stderr=subprocess.PIPE).strip()
+                cwd=repo_path, stderr=subprocess.PIPE, ignore_errors=True).strip()
 
 
 def get_date_of_tag(repo_path, tag):
