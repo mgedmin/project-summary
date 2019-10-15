@@ -35,7 +35,7 @@ import requests_cache
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.11.1'
+__version__ = '0.12.0'
 
 log = logging.getLogger('project-summary')
 
@@ -178,9 +178,9 @@ class GitHubRateLimitError(GitHubError):
     pass
 
 
-def github_request(url):
+def github_request(url, session):
     log.debug('GET %s', url)
-    res = requests.get(url)
+    res = session.get(url)
     if res.status_code == 403 and res.headers.get('X-RateLimit-Remaining') == '0':
         reset_time = int(res.headers['X-RateLimit-Reset'])
         minutes = int(math.ceil((reset_time - time.time()) / 60))
@@ -195,18 +195,15 @@ def github_request(url):
     return res
 
 
-def github_request_json(url):
-    return github_request(url).json()
-
-
-def github_request_list(url, batch_size=100):
-    res = github_request('%s?per_page=%d' % (url, batch_size))
+def github_request_list(url, session, batch_size=100):
+    res = github_request('%s?per_page=%d' % (url, batch_size), session)
     result = res.json()
     assert isinstance(result, list), result
     for page in itertools.count(2):
         if 'rel="next"' not in res.headers.get('Link', ''):
             break
-        res = github_request('%s?per_page=%d&page=%d' % (url, batch_size, page))
+        res = github_request('%s?per_page=%d&page=%d' % (url, batch_size, page),
+                             session)
         batch = res.json()
         assert isinstance(batch, list), (page, batch)
         result.extend(batch)
@@ -330,9 +327,14 @@ def simplify_python_versions(versions):
 
 class Project(object):
 
-    def __init__(self, working_tree, config):
+    def __init__(self, working_tree, config, session):
         self.working_tree = working_tree
         self.config = config
+        self.session = session
+
+    def _http_get(self, url, **kwargs):
+        log.debug('GET %s', url)
+        return self.session.get(url, **kwargs)
 
     def fetch(self):
         pipe('git', 'fetch', '--prune', cwd=self.working_tree)
@@ -437,7 +439,7 @@ class Project(object):
     def travis_status(self):
         if not self.uses_travis:
             return None
-        res = requests.get(self.travis_image_url)
+        res = self._http_get(self.travis_image_url)
         return self._parse_svg_text(res.text, skip_words={'build'})
 
     def _parse_svg_text(self, svg_text, skip_words=()):
@@ -470,7 +472,7 @@ class Project(object):
     def appveyor_status(self):
         if not self.uses_appveyor:
             return None
-        res = requests.get(self.appveyor_image_url)
+        res = self._http_get(self.appveyor_image_url)
         return self._parse_svg_text(res.text, skip_words={'build'})
 
     @property
@@ -497,8 +499,7 @@ class Project(object):
         url = self.coveralls_image_url
         if not url:
             return None
-        log.debug('GET %s', url)
-        res = requests.get(url, allow_redirects=False)
+        res = self._http_get(url, allow_redirects=False)
         location = res.headers.get('Location')
         if res.status_code != 302 or not location:
             return None
@@ -536,7 +537,7 @@ class Project(object):
         if not self.uses_jenkins:
             return None
         url = self.get_jenkins_image_url(job_config)
-        res = requests.get(url)
+        res = self._http_get(url)
         return self._parse_svg_text(res.text, skip_words={'build'})
 
     @reify
@@ -549,7 +550,7 @@ class Project(object):
             return []
         url = 'https://api.github.com/repos/{owner}/{name}/issues'.format(
             owner=self.owner, name=self.name)
-        return github_request_list(url)
+        return github_request_list(url, self.session)
 
     @reify
     def github_issues(self):
@@ -590,9 +591,9 @@ class Project(object):
         return '{base}/pulls'.format(base=self.url)
 
 
-def get_projects(config):
+def get_projects(config, session):
     for path in get_repos(config):
-        p = Project(path, config)
+        p = Project(path, config, session)
         if p.name in config.ignore:
             continue
         if config.skip_branches and p.branch != 'master':
@@ -1024,7 +1025,6 @@ def pluralize(number, noun):
 
 
 def main():
-    config = Configuration()
     parser = argparse.ArgumentParser(
         description="Summarize release status of several projects")
     parser.add_argument('--version', action='version',
@@ -1063,13 +1063,16 @@ def main():
             expire_after=to_seconds(args.cache_duration)
         )
 
+    session = requests.Session()
+
+    config = Configuration()
     if args.fetch is not None:
         config.fetch = args.fetch
     if args.pull is not None:
         config.pull = args.pull
     if args.skip_branches is not None:
         config.skip_branches = args.skip_branches
-    projects = get_projects(config)
+    projects = get_projects(config, session)
     if args.html:
         try:
             print_html_report(projects, config, args.output_file)
