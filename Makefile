@@ -1,12 +1,20 @@
 .PHONY: all
 all: bin/pip bin/summary
 
+.PHONY: help
+help:
+	echo "make                  # build"
+	echo "make test             # run tests"
+	echo "make clean            # remove build artefacts"
+	echo "make update-assets    # update assets files from bower.json"
+
 .PHONY: test
 test: bin/pytest
 	bin/pytest tests.py
 
+.PHONY: clean
 clean:
-	rm -rf .env bin .httpcache.sqlite __pycache__ .pytest_cache/ *.egg-info *.pyc
+	rm -rf .env bin .httpcache.sqlite __pycache__ .pytest_cache/ *.egg-info *.pyc package-lock.json
 
 bin:
 	mkdir bin
@@ -54,6 +62,7 @@ font_files = \
     bower_components/bootstrap/dist/fonts/*.eot \
     bower_components/bootstrap/dist/fonts/*.woff*
 
+.PHONY: update-assets
 update-assets: bower_components
 	rm -rf assets
 	mkdir -p assets/css assets/js assets/fonts
