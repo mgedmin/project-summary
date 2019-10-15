@@ -833,13 +833,14 @@ template = Template('''\
           </table>
         </div>
 
-<% versions = ['2.7', '3.5', '3.6', '3.7', 'PyPy'] %>
+<% versions = ['2.7', '3.5', '3.6', '3.7', '3.8', 'PyPy'] %>
 <% eol_date = {
     # https://devguide.python.org/#status-of-python-branches
     '2.7': '2020-01-01',
     '3.5': '2020-09-13',
     '3.6': '2021-12-23',
-    '3.7': '2023-12-23',
+    '3.7': '2023-06-27',
+    '3.8': '2024-10-01',  # approximate
 } %>
         <div class="tab-pane" id="python-versions">
           <table class="table table-hover">
