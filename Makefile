@@ -43,7 +43,8 @@ bower_components: bower.json | bin/bower
 css_files = \
     bower_components/bootstrap/dist/css/bootstrap.css \
     bower_components/bootstrap/dist/css/bootstrap.css.map \
-    bower_components/bootstrap/dist/css/bootstrap.min.css
+    bower_components/bootstrap/dist/css/bootstrap.min.css \
+    bower_components/bootstrap/dist/css/bootstrap.min.css.map
 
 js_files = \
     bower_components/bootstrap/dist/js/bootstrap.js \
