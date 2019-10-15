@@ -679,6 +679,7 @@ template = Template('''\
       #release-status th:nth-child(3), #release-status td:nth-child(3) { text-align: right; }
       #release-status th:nth-child(4), #release-status td:nth-child(4) { text-align: right; }
       #release-status th:nth-child(5), #release-status td:nth-child(5) { text-align: right; }
+      #maintenance td[data-status] { padding-right: 0; }
       #maintenance th:nth-child(7), #maintenance td:nth-child(7) { text-align: right; }
       #maintenance th:nth-child(8), #maintenance td:nth-child(8) { text-align: right; }
       #maintenance span.new { font-weight: bold; }
@@ -806,19 +807,19 @@ template = Template('''\
               <tr>
                 <td>${project_name(project)}</td>
 %     if project.travis_url:
-                <td><a href="${project.travis_url}"><img src="${project.travis_image_url}" alt="${project.travis_status}" height="20"></a></td>
+                <td data-status="${project.travis_status}"><a href="${project.travis_url}"><img src="${project.travis_image_url}" alt="${project.travis_status}" height="20"></a></td>
 %     else:
                 <td>-</td>
 %     endif
 % for job in config.jenkins_jobs:
 %     if project.uses_jenkins:
-                <td><a href="${project.get_jenkins_url(job)}"><img src="${project.get_jenkins_image_url(job)}" alt="${project.get_jenkins_status(job)}" height="20"></a></td>
+                <td data-status="${project.get_jenkins_status(job)}"><a href="${project.get_jenkins_url(job)}"><img src="${project.get_jenkins_image_url(job)}" alt="${project.get_jenkins_status(job)}" height="20"></a></td>
 %     else:
                 <td>-</td>
 %     endif
 % endfor
 %     if project.appveyor_url:
-                <td><a href="${project.appveyor_url}"><img src="${project.appveyor_image_url}" alt="${project.appveyor_status}" height="20"></a></td>
+                <td data-status="${project.appveyor_status}"><a href="${project.appveyor_url}"><img src="${project.appveyor_image_url}" alt="${project.appveyor_status}" height="20"></a></td>
 %     else:
                 <td>-</td>
 %     endif
