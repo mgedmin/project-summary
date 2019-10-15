@@ -707,12 +707,18 @@ template = Template('''\
       .tablesorter-icon { color: #ddd; }
       .tablesorter-header { cursor: default; }
       .invisible { visibility: hidden; }
-      #release-status th:nth-child(3), #release-status td:nth-child(3) { text-align: right; }
-      #release-status th:nth-child(4), #release-status td:nth-child(4) { text-align: right; }
-      #release-status th:nth-child(5), #release-status td:nth-child(5) { text-align: right; }
-      #maintenance td[data-status] { padding-right: 0; }
-      #maintenance th:nth-child(7), #maintenance td:nth-child(7) { text-align: right; }
-      #maintenance th:nth-child(8), #maintenance td:nth-child(8) { text-align: right; }
+      #release-status th.date,
+      #release-status td.date,
+      #release-status th.changes,
+      #release-status td.changes,
+      #release-status th.status,
+      #release-status td.status { text-align: right; }
+      #maintenance th.status,
+      #maintenance td.status { padding-right: 0; }
+      #maintenance th.issues,
+      #maintenance td.issues,
+      #maintenance th.pulls,
+      #maintenance td.pulls { text-align: right; }
       #maintenance span.new { font-weight: bold; }
       #maintenance span.none { color: #999; }
       #python-versions span.no,
@@ -782,24 +788,24 @@ template = Template('''\
           <table class="table table-hover">
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Last release</th>
-                <th>Date</th>
-                <th>Pending changes</th>
-                <th>Build status</th>
+                <th class="name">Name</th>
+                <th class="version">Last release</th>
+                <th class="date">Date</th>
+                <th class="changes">Pending changes</th>
+                <th class="status">Build status</th>
               </tr>
             </thead>
             <tbody>
 % for project in projects:
               <tr>
-                <td>${project_name(project)}</td>
-                <td><a href="${project.pypi_url}">${project.last_tag}</a></td>
-                <td title="${project.last_tag_date}">${nice_date(project.last_tag_date)}</td>
-                <td><a href="${project.compare_url}">${pluralize(len(project.pending_commits), 'commits')}</a></td>
+                <td class="name">${project_name(project)}</td>
+                <td class="version"><a href="${project.pypi_url}">${project.last_tag}</a></td>
+                <td class="date" title="${project.last_tag_date}">${nice_date(project.last_tag_date)}</td>
+                <td class="changes"><a href="${project.compare_url}">${pluralize(len(project.pending_commits), 'commits')}</a></td>
 %     if project.travis_url:
-                <td><a href="${project.travis_url}"><img src="${project.travis_image_url}" alt="${project.travis_status}" height="20"></a></td>
+                <td class="status"><a href="${project.travis_url}"><img src="${project.travis_image_url}" alt="${project.travis_status}" height="20"></a></td>
 %     else:
-                <td>-</td>
+                <td class="status">-</td>
 %     endif
               </tr>
 % endfor
@@ -822,45 +828,45 @@ template = Template('''\
             </colgroup>
             <thead>
               <tr>
-                <th>Name</th>
-                <th>Travis CI</th>
+                <th class="name">Name</th>
+                <th class="status">Travis CI</th>
 % for job in config.jenkins_jobs:
-                <th>Jenkins ${job.title}</th>
+                <th class="status">Jenkins ${job.title}</th>
 % endfor
-                <th>Appveyor</th>
-                <th>Coveralls</th>
-                <th>Issues</th>
-                <th>PRs</th>
+                <th class="status">Appveyor</th>
+                <th class="status">Coveralls</th>
+                <th class="issues">Issues</th>
+                <th class="pulls">PRs</th>
               </tr>
             </thead>
             <tbody>
 % for project in projects:
               <tr>
-                <td>${project_name(project)}</td>
+                <td class="name">${project_name(project)}</td>
 %     if project.travis_url:
-                <td data-status="${project.travis_status}"><a href="${project.travis_url}"><img src="${project.travis_image_url}" alt="${project.travis_status}" height="20"></a></td>
+                <td class="status"><a href="${project.travis_url}"><img src="${project.travis_image_url}" alt="${project.travis_status}" height="20"></a></td>
 %     else:
-                <td>-</td>
+                <td class="status">-</td>
 %     endif
 % for job in config.jenkins_jobs:
 %     if project.uses_jenkins:
-                <td data-status="${project.get_jenkins_status(job)}"><a href="${project.get_jenkins_url(job)}"><img src="${project.get_jenkins_image_url(job)}" alt="${project.get_jenkins_status(job)}" height="20"></a></td>
+                <td class="status"><a href="${project.get_jenkins_url(job)}"><img src="${project.get_jenkins_image_url(job)}" alt="${project.get_jenkins_status(job)}" height="20"></a></td>
 %     else:
-                <td>-</td>
+                <td class="status">-</td>
 %     endif
 % endfor
 %     if project.appveyor_url:
-                <td data-status="${project.appveyor_status}"><a href="${project.appveyor_url}"><img src="${project.appveyor_image_url}" alt="${project.appveyor_status}" height="20"></a></td>
+                <td class="status"><a href="${project.appveyor_url}"><img src="${project.appveyor_image_url}" alt="${project.appveyor_status}" height="20"></a></td>
 %     else:
-                <td>-</td>
+                <td class="status">-</td>
 %     endif
 %     if project.coveralls_url:
-                <td data-coverage="${project.coverage()}"><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="${project.coverage('{}%', 'unknown')}" height="20"></a></td>
+                <td class="status" data-coverage="${project.coverage()}"><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="${project.coverage('{}%', 'unknown')}" height="20"></a></td>
 %     else:
-                <td>-</td>
+                <td class="status">-</td>
 %     endif
-%     for new_count, total_count, url in [(project.unlabeled_open_issues_count, project.open_issues_count, project.issues_url), (project.unlabeled_open_pulls_count, project.open_pulls_count, project.pulls_url)]:
-                <td data-total="${total_count}" data-new=${new_count}>${issues(new_count, total_count, url)}</td>
+%     for css_class, new_count, total_count, url in [('issues', project.unlabeled_open_issues_count, project.open_issues_count, project.issues_url), ('pulls', project.unlabeled_open_pulls_count, project.open_pulls_count, project.pulls_url)]:
+                <td class="${css_class}" data-total="${total_count}" data-new=${new_count}>${issues(new_count, total_count, url)}</td>
 %     endfor
               </tr>
 % endfor
