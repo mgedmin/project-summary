@@ -1060,7 +1060,8 @@ def main():
         requests_cache.install_cache(
             args.http_cache,
             backend='sqlite',
-            expire_after=to_seconds(args.cache_duration)
+            expire_after=to_seconds(args.cache_duration),
+            allowable_codes=(200, 302),
         )
 
     session = requests.Session()
