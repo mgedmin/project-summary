@@ -751,9 +751,24 @@ eol_date = {
       @media (max-width: 992px) {
         .container { width: auto; }
       }
-      @media only screen and (max-width: 769px) {
+      @media (max-width: 600px) {
+        .page-header {
+          display: flex;
+          flex-flow: column;
+        }
+        .page-header .pull-right {
+          float: none !important;
+          display: box;
+          margin: 0 auto;
+        }
+      }
+      @media (max-width: 769px) {
+        .page-header { margin-bottom: 0; }
         table, tbody, th, td, tr { display: block; }
         thead { display: none; }
+        tr:first-child > td:first-child {
+          border-top: none !important;
+        }
         td:not(:first-child) {
           padding: 0px 2em 8px 2em !important;
           border-top: none !important;
