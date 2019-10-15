@@ -4,6 +4,7 @@ Generate a summary for all my projects.
 """
 
 import argparse
+import datetime
 import glob
 import itertools
 import linecache
@@ -178,8 +179,37 @@ class GitHubRateLimitError(GitHubError):
     pass
 
 
+def is_cached(url, session):
+    if not hasattr(session, 'cache'):
+        return False
+    if not session.cache.has_url(url):
+        return False
+    cache_key = session.cache.create_key(
+        session.prepare_request(requests.Request('GET', url)))
+    try:
+        response, timestamp = session.cache.get_response_and_time(cache_key)
+    except (ImportError, TypeError):
+        return False
+    if response is None or timestamp is None:
+        return False
+    # XXX: private attributes are not nice, I could take the value directly
+    # from args.cache_duration and convert to datetime.timedelta()
+    expire_after = session._cache_expire_after
+    # XXX: there's a slight chance it might expire after I print but before I
+    # actually do the query!
+    is_expired = datetime.datetime.utcnow() - timestamp > expire_after
+    return not is_expired
+
+
+def log_url(url, session):
+    if is_cached(url, session):
+        log.debug('HIT %s', url)
+    else:
+        log.debug('GET %s', url)
+
+
 def github_request(url, session):
-    log.debug('GET %s', url)
+    log_url(url, session)
     res = session.get(url)
     if res.status_code == 403 and res.headers.get('X-RateLimit-Remaining') == '0':
         reset_time = int(res.headers['X-RateLimit-Reset'])
@@ -333,7 +363,7 @@ class Project(object):
         self.session = session
 
     def _http_get(self, url, **kwargs):
-        log.debug('GET %s', url)
+        log_url(url, self.session)
         return self.session.get(url, **kwargs)
 
     def fetch(self):
