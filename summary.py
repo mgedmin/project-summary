@@ -668,6 +668,9 @@ template = Template('''\
     <link rel="stylesheet" href="assets/css/bootstrap.min.css">
 
     <style type="text/css">
+      @media (max-width: 992px) {
+        .container { width: auto; }
+      }
       th { white-space: nowrap; }
       td > a > img { position: relative; top: -1px; }
       .tablesorter-icon { color: #ddd; }
