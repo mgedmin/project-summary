@@ -688,6 +688,17 @@ def Template(*args, **kw):
 
 template = Template('''\
 <!DOCTYPE html>
+<%
+versions = ['2.7', '3.5', '3.6', '3.7', '3.8', 'PyPy']
+eol_date = {
+    # https://devguide.python.org/#status-of-python-branches
+    '2.7': '2020-01-01',
+    '3.5': '2020-09-13',
+    '3.6': '2021-12-23',
+    '3.7': '2023-06-27',
+    '3.8': '2024-10-01',  # approximate
+}
+%>
 <html lang="en">
   <head>
     <meta charset="utf-8">
@@ -699,9 +710,6 @@ template = Template('''\
     <link rel="stylesheet" href="assets/css/bootstrap.min.css">
 
     <style type="text/css">
-      @media (max-width: 992px) {
-        .container { width: auto; }
-      }
       th { white-space: nowrap; }
       td > a > img { position: relative; top: -1px; }
       .tablesorter-icon { color: #ddd; }
@@ -739,6 +747,43 @@ template = Template('''\
         border-radius: 4px;
       }
       footer { padding-top: 16px; padding-bottom: 16px; text-align: center; color: #999; }
+
+      @media (max-width: 992px) {
+        .container { width: auto; }
+      }
+      @media only screen and (max-width: 769px) {
+        table, tbody, th, td, tr { display: block; }
+        thead { display: none; }
+        td:not(:first-child) {
+          padding: 0px 2em 8px 2em !important;
+          border-top: none !important;
+        }
+        #release-status td.version:before { content: "Last release: "; }
+        #release-status td.date:before { content: "Date: "; }
+        #release-status td.changes:before { content: "Pending changes: "; }
+        #release-status td.status:before { content: "Travis CI status: "; }
+        #release-status td.date,
+        #release-status td.changes,
+        #release-status td.status { text-align: left; }
+        #maintenance td.version:before { content: "Last release: "; }
+        #maintenance td:nth-child(2):before { content: "Travis CI status: "; }
+% for n, job in enumerate(config.jenkins_jobs, start=3):
+        #maintenance td:nth-child(${n}):before { content: "Jenkins ${job.title} status: "; }
+% endfor
+        #maintenance td:nth-child(${n+1}):before { content: "Jenkins (Linux) status: "; }
+        #maintenance td:nth-child(${n+2}):before { content: "Jenkins (Windows) status: "; }
+        #maintenance td:nth-child(${n+3}):before { content: "Appveyor status: "; }
+        #maintenance td:nth-child(${n+4}):before { content: "Coveralls status: "; }
+        #maintenance td.issues:before { content: "GitHub issues: "; }
+        #maintenance td.pulls:before { content: "GitHub pull requests: "; }
+        #maintenance td.issues,
+        #maintenance td.pulls { text-align: left; }
+% for n, ver in enumerate(versions, start=2):
+        #python-versions td:nth-child(${n}):before { content: "Python ${ver}: "; }
+% endfor
+        #python-versions td[data-coverage]:before { content: "Coveralls status: "; }
+        td:before { display: inline-block; width: 50%; }
+      }
     </style>
 
     <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
@@ -784,7 +829,7 @@ template = Template('''\
 
       <div class="tab-content">
 
-        <div class="tab-pane active table-responsive" id="release-status">
+        <div class="tab-pane active" id="release-status">
           <table class="table table-hover">
             <thead>
               <tr>
@@ -813,7 +858,7 @@ template = Template('''\
           </table>
         </div>
 
-        <div class="tab-pane table-responsive" id="maintenance">
+        <div class="tab-pane" id="maintenance">
           <table class="table table-hover">
             <colgroup>
               <col width="15%">
@@ -874,16 +919,7 @@ template = Template('''\
           </table>
         </div>
 
-<% versions = ['2.7', '3.5', '3.6', '3.7', '3.8', 'PyPy'] %>
-<% eol_date = {
-    # https://devguide.python.org/#status-of-python-branches
-    '2.7': '2020-01-01',
-    '3.5': '2020-09-13',
-    '3.6': '2021-12-23',
-    '3.7': '2023-06-27',
-    '3.8': '2024-10-01',  # approximate
-} %>
-        <div class="tab-pane table-responsive" id="python-versions">
+        <div class="tab-pane" id="python-versions">
           <table class="table table-hover">
             <thead>
               <tr>
