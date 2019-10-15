@@ -61,13 +61,12 @@ Check out project-summary.cfg for the current configuration options.
 Note on HTTP request caching
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-HTTP requests are cached for 15 minutes by default, in an SQLite database
+HTTP requests are cached for 30 minutes by default, in an SQLite database
 called ``.httpcache.sqlite``.
 
 This is because I run the script rather often while I'm developing it,
-and without caching I'd run into GitHub's public API rate limits (60
-requests per hour) very quickly.  The default cache duration lets me have
-up to 15 projects.
+and without caching the script takes a long time to run.  Also, I don't want to
+run into GitHub's public API rate limits (60 requests per hour).
 
 You can change the cache duration by specifying, e.g. ``--cache-duration 5m``
 (valid units are seconds, minutes and hours and can be abbreviated to
