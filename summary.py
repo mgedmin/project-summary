@@ -746,7 +746,7 @@ template = Template('''\
 
       <div class="tab-content">
 
-        <div class="tab-pane active" id="release-status">
+        <div class="tab-pane active table-responsive" id="release-status">
           <table class="table table-hover">
             <thead>
               <tr>
@@ -775,7 +775,7 @@ template = Template('''\
           </table>
         </div>
 
-        <div class="tab-pane" id="maintenance">
+        <div class="tab-pane table-responsive" id="maintenance">
           <table class="table table-hover">
             <colgroup>
               <col width="15%">
@@ -845,7 +845,7 @@ template = Template('''\
     '3.7': '2023-06-27',
     '3.8': '2024-10-01',  # approximate
 } %>
-        <div class="tab-pane" id="python-versions">
+        <div class="tab-pane table-responsive" id="python-versions">
           <table class="table table-hover">
             <thead>
               <tr>
