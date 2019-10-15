@@ -770,16 +770,14 @@ eol_date = {
 % for n, job in enumerate(config.jenkins_jobs, start=3):
         #maintenance td:nth-child(${n}):before { content: "Jenkins ${job.title} status: "; }
 % endfor
-        #maintenance td:nth-child(${n+1}):before { content: "Jenkins (Linux) status: "; }
-        #maintenance td:nth-child(${n+2}):before { content: "Jenkins (Windows) status: "; }
-        #maintenance td:nth-child(${n+3}):before { content: "Appveyor status: "; }
-        #maintenance td:nth-child(${n+4}):before { content: "Coveralls status: "; }
+        #maintenance td:nth-child(${n+1}):before { content: "Appveyor status: "; }
+        #maintenance td:nth-child(${n+2}):before { content: "Coveralls status: "; }
         #maintenance td.issues:before { content: "GitHub issues: "; }
         #maintenance td.pulls:before { content: "GitHub pull requests: "; }
         #maintenance td.issues,
         #maintenance td.pulls { text-align: left; }
 % for n, ver in enumerate(versions, start=2):
-        #python-versions td:nth-child(${n}):before { content: "Python ${ver}: "; }
+        #python-versions td:nth-child(${n}):before { content: "${ver if ver.startswith('PyPy') else 'Python %s' % ver}: "; }
 % endfor
         #python-versions td[data-coverage]:before { content: "Coveralls status: "; }
         td:before { display: inline-block; width: 50%; }
