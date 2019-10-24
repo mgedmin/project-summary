@@ -292,6 +292,7 @@ def get_branch_name(repo_path):
     # detached head, oh my
     commit = pipe("git", "rev-parse", "HEAD",
                   cwd=repo_path, stderr=subprocess.PIPE).strip()
+    names = {}
     for line in pipe("git", "show-ref", cwd=repo_path, stderr=subprocess.PIPE).splitlines():
         if line.startswith(commit):
             name = line.split()[1]
@@ -304,7 +305,14 @@ def get_branch_name(repo_path):
                 if name.startswith('origin/'):
                     name = name[len('origin/'):]
             if name != 'HEAD':
-                return name
+                names.add(name)
+    # if several branches point to the same commit, we must've done a
+    # fast-forward merge.  if one of those branches is master, we want it,
+    # otherwise we might incorrectly skip this repo due to --skip-branches
+    if 'master' in names:
+        return 'master'
+    if names:
+        return sorted(names)[0]
     # okay, we have a _stale_ detached head, Jenkins must be dropping
     # github notifications again!
     for line in pipe("git", "branch", "-r", "--contains", name, cwd=repo_path, stderr=subprocess.PIPE).splitlines():
