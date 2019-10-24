@@ -292,7 +292,7 @@ def get_branch_name(repo_path):
     # detached head, oh my
     commit = pipe("git", "rev-parse", "HEAD",
                   cwd=repo_path, stderr=subprocess.PIPE).strip()
-    names = {}
+    names = set()
     for line in pipe("git", "show-ref", cwd=repo_path, stderr=subprocess.PIPE).splitlines():
         if line.startswith(commit):
             name = line.split()[1]
