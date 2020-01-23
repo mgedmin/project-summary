@@ -790,6 +790,7 @@ eol_date = {
         #release-status td.status { text-align: left; }
         #maintenance td.version:before { content: "Last release: "; }
         #maintenance td:nth-child(2):before { content: "Travis CI status: "; }
+<% n = 2 %>
 % for n, job in enumerate(config.jenkins_jobs, start=3):
         #maintenance td:nth-child(${n}):before { content: "Jenkins ${job.title} status: "; }
 % endfor
