@@ -36,7 +36,7 @@ import requests_cache
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.12.0'
+__version__ = '0.12.1'
 
 log = logging.getLogger('project-summary')
 
