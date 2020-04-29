@@ -5,12 +5,18 @@ all: bin/pip bin/summary
 help:
 	echo "make                  # build"
 	echo "make test             # run tests"
+	echo "make coverage         # measure test coverage"
 	echo "make clean            # remove build artefacts"
 	echo "make update-assets    # update assets files from bower.json"
 
 .PHONY: test
 test: bin/pytest
-	bin/pytest tests.py
+	bin/pytest
+
+.PHONY: test
+coverage: bin/pytest bin/coverage
+	bin/coverage run -m pytest
+	bin/coverage report -m
 
 .PHONY: clean
 clean:
@@ -31,6 +37,10 @@ bin/pip: | bin
 bin/pytest: | bin/pip
 	bin/pip install pytest
 	ln -sfr .env/bin/pytest bin/
+
+bin/coverage: | bin/pip
+	bin/pip install coverage
+	ln -sfr .env/bin/coverage bin/
 
 bin/bower: | bin
 	npm install bower

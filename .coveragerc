@@ -1,0 +1,9 @@
+[run]
+source = summary
+
+[report]
+exclude_lines =
+    pragma: nocover
+    except ImportError:
+    except NameError:
+    if __name__ == .__main__.:
