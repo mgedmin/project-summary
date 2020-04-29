@@ -222,6 +222,11 @@ def github_request(url, session):
             ))
     elif 400 <= res.status_code < 500:
         raise GitHubError(res.json()['message'])
+    try:
+        return res.json()
+    except ValueError as e:
+        raise GitHubError('{e}\nGot: {text!r}\nURL: {url}'.format(
+            e=e, text=res.text, url=url))
     return res
 
 
