@@ -17,16 +17,8 @@ import sys
 import time
 import traceback
 from collections import namedtuple
-
-try:
-    from cStringIO import StringIO
-except ImportError:
-    from io import StringIO
-
-try:
-    from configparser import SafeConfigParser
-except ImportError:
-    from ConfigParser import SafeConfigParser
+from configparser import ConfigParser
+from io import StringIO
 
 import arrow
 import mako.template
@@ -36,7 +28,7 @@ import requests_cache
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.12.1'
+__version__ = '0.12.2'
 
 log = logging.getLogger('project-summary')
 
@@ -121,7 +113,7 @@ class Configuration(object):
     '''.replace('\n        ', '\n').strip()
 
     def __init__(self, filename='project-summary.cfg'):
-        cp = SafeConfigParser()
+        cp = ConfigParser()
         cp.readfp(StringIO(self._defaults), '<defaults>')
         cp.read([filename])
         self._config = cp
