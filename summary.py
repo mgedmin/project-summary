@@ -352,14 +352,6 @@ def get_supported_python_versions(repo_path):
     ]
 
 
-def simplify_python_versions(versions):
-    versions = sorted(versions)
-    if '2' in versions and any(v.startswith('2.') for v in versions):
-        versions.remove('2')
-    if '3' in versions and any(v.startswith('3.') for v in versions):
-        versions.remove('3')
-
-
 class Project(object):
 
     def __init__(self, working_tree, config, session):
