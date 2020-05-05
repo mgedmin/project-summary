@@ -28,7 +28,7 @@ import requests_cache
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.12.2'
+__version__ = '0.12.3'
 
 log = logging.getLogger('project-summary')
 
@@ -779,8 +779,8 @@ eol_date = {
         #release-status td.status { text-align: left; }
         #maintenance td.version:before { content: "Last release: "; }
         #maintenance td:nth-child(2):before { content: "Travis CI status: "; }
-<% n = 2 %>
-% for n, job in enumerate(config.jenkins_jobs, start=3):
+<% n = 2 %>\\
+% for n, job in enumerate(config.jenkins_jobs, start=n+1):
         #maintenance td:nth-child(${n}):before { content: "Jenkins ${job.title} status: "; }
 % endfor
         #maintenance td:nth-child(${n+1}):before { content: "Appveyor status: "; }
@@ -1044,12 +1044,14 @@ eol_date = {
           sortList: [[0, 0]],
           textExtraction: {
             1: sortAltText, // travis ci build status in alt text
-            2: sortAltText, // jenkins build status in alt text
-            3: sortAltText, // jenkins build status in alt text
-            4: sortAltText, // appveyor build status in alt text
-            5: sortCoverage, // coverage percentage in data attribute
-            6: sortIssues, // issue counts in data attributes
-            7: sortIssues  // PR counts in data attributes
+<% n = 1 %>\\
+% for n, job in enumerate(config.jenkins_jobs, start=n+1):
+            ${n}: sortAltText, // jenkins build status in alt text
+% endfor
+            ${n+1}: sortAltText, // appveyor build status in alt text
+            ${n+2}: sortCoverage, // coverage percentage in data attribute
+            ${n+3}: sortIssues, // issue counts in data attributes
+            ${n+4}: sortIssues  // PR counts in data attributes
           }
         });
         $("#python-versions table").tablesorter({
