@@ -37,7 +37,13 @@ setup(
 
     py_modules=['summary'],
     zip_safe=False,
-    install_requires=['arrow', 'mako', 'requests', 'requests-cache'],
+    install_requires=[
+        'arrow',
+        'mako',
+        'markupsafe',
+        'requests',
+        'requests-cache',
+    ],
     entry_points={
         'console_scripts': [
             'summary = summary:main',

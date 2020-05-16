@@ -24,6 +24,7 @@ from io import StringIO
 import arrow
 import mako.exceptions
 import mako.template
+import markupsafe
 import requests
 import requests_cache
 
@@ -161,7 +162,7 @@ class Configuration(object):
 
     @reify
     def footer(self):
-        return self._config.get('project-summary', 'footer')
+        return markupsafe.Markup(self._config.get('project-summary', 'footer'))
 
 
 #
@@ -679,29 +680,433 @@ def mako_error_handler(context, error):
 
 
 def Template(*args, **kw):
+    kw.setdefault('default_filters', ['h'])
     return mako.template.Template(error_handler=mako_error_handler,
                                   strict_undefined=True,
-                                  default_filters=['unicode', 'h'],
                                   *args, **kw)
+
+
+def html(tag, body='', **attrs):
+    if not tag:
+        return markupsafe.escape(body)
+    attrs = ''.join(f''' {name.rstrip('_')}="{markupsafe.escape(value)}"'''
+                    for name, value in attrs.items() if value is not None)
+    if tag in ('img', 'link', 'br', 'hr', 'meta', 'col'):
+        assert not body
+        return markupsafe.Markup(f'<{tag}%s>' % attrs)
+    return markupsafe.Markup(f'<{tag}{attrs}>{markupsafe.escape(body)}</{tag}>')
 
 
 #
 # Report generation
 #
 
-template = Template('''\
-<!DOCTYPE html>
-<%
-versions = ['2.7', '3.5', '3.6', '3.7', '3.8', 'PyPy']
-eol_date = {
-    # https://devguide.python.org/#status-of-python-branches
+
+PYTHON_VERSIONS = ['2.7', '3.5', '3.6', '3.7', '3.8', 'PyPy']
+PYTHON_EOL_DATE = {
+    # Source: https://devguide.python.org/#status-of-python-branches
     '2.7': '2020-01-01',
     '3.5': '2020-09-13',
     '3.6': '2021-12-23',
     '3.7': '2023-06-27',
     '3.8': '2024-10-01',  # approximate
 }
-%>
+
+
+class Pages:
+
+    def __init__(self, pages):
+        self.pages = pages
+
+    def __iter__(self):
+        return iter(self.pages)
+
+    def stylesheet(self, variant=None):
+        seen = set()
+        styles = []
+        for page in self.pages:
+            for column in page.columns:
+                rules = column.stylesheet(page, variant)
+                if rules and rules not in seen:
+                    seen.add(rules)
+                    styles.append(rules)
+        return markupsafe.Markup('').join(styles)
+
+
+class Page:
+
+    def __init__(self, title, columns):
+        self.title = title
+        self.name = '-'.join(title.lower().split())
+        self.columns = columns
+
+    def js_text_extractors(self):
+        cols = [(idx, col) for idx, col in enumerate(self.columns)
+                if col.js_sort_rule]
+        return '\n            '.join(
+            col.js_text_extractor(idx, idx == cols[-1][0])
+            for idx, col in cols
+        )
+
+    def js_render_header(self, comma=','):
+        cols = [idx for idx, col in enumerate(self.columns)
+                if col.align == 'right']
+        if not cols:
+            return ''
+        for pivot, col in enumerate(self.columns):
+            if cols == list(range(pivot, len(self.columns))):
+                expr = f'idx >= {pivot}'
+                break
+        else:
+            expr = ' || '.join(f'idx == {n}' for n in cols)
+        return markupsafe.Markup(JS('''
+          onRenderHeader: function(idx, config, table) {{
+            // move the sort indicator to the left for right-aligned columns
+            if ({expr}) {{
+              var $this = $(this);
+              $this.find('div').prepend($this.find('i'));
+            }}
+          }}{comma}
+        ''').format(expr=expr, comma=comma))
+
+
+def strip_leading_newline_and_trailing_spaces(rules):
+    return rules.lstrip('\n').rstrip(' ')
+
+
+JS = CSS = strip_leading_newline_and_trailing_spaces
+
+
+class Column:
+    title = None
+    title_tooltip = None
+    title_narrow = None
+    css_class = None
+    css_rules = CSS('''
+    % if column.align:
+      #${page.name} th.${css_class},
+      #${page.name} td.${css_class} { text-align: ${column.align}; }
+    % endif
+    ''')
+    css_rules_narrow = CSS('''
+        #${page.name} td${discrim}:before { content: "${column.title_narrow or column.title|h}: "; }
+    % if column.align:
+        #${page.name} td${discrim} { text-align: left; }
+    % endif
+    ''')
+    js_sort_rule = None
+
+    def __init__(self, title=None, *, css_class=None, width=None, align=None):
+        if title is not None:
+            self.title = title
+        if css_class is not None:
+            self.css_class = css_class
+        self.width = width
+        self.align = align
+
+    def js_text_extractor(self, index, last):
+        if not self.js_sort_rule:
+            return ''
+        sorter, comment = self.js_sort_rule
+        if not last:
+            sorter += ","
+        return f'{index}: {sorter:<20} // {comment}'
+
+    def stylesheet(self, page, variant=None):
+        if variant:
+            rules = getattr(self, f'css_rules_{variant}')
+        else:
+            rules = self.css_rules
+        if not rules:
+            return None
+        unique_class = all(col.css_class != self.css_class
+                           for col in page.columns
+                           if col != self)
+        if self.css_class is None or not unique_class:
+            discrim = f":nth-child({page.columns.index(self) + 1})"
+        else:
+            discrim = f".{self.css_class}"
+        template = Template(rules, default_filters=['str', 'n'])
+        return markupsafe.Markup(template.render_unicode(
+            page=page,
+            column=self,
+            css_class=self.css_class,
+            discrim=discrim,
+        ))
+
+    def col(self):
+        return html('col', width=self.width)
+
+    def th(self):
+        return html('th', self.title, class_=self.css_class,
+                    title=self.title_tooltip)
+
+    def td(self, project):
+        return html('td', self.inner_html(project), class_=self.css_class,
+                    title=self.tooltip(project),
+                    **{f'data-{item}': value
+                       for item, value in self.get_data(project).items()})
+
+    def tooltip(self, project):
+        return None
+
+    def get_data(self, project):
+        return {}
+
+    def inner_html(self, project):
+        raise NotImplementedError
+
+
+class NameColumn(Column):
+    title = 'Name'
+    css_class = 'name'
+    css_rules_narrow = CSS('''
+    % if column.align:
+        #${page.name} td.${css_class} { text-align: left; }
+    % endif
+    ''')
+
+    def inner_html(self, project):
+        return html('a', project.name, href=project.url) + (
+            f' {project.branch}' if project.branch != 'master' else ''
+        )
+
+
+class VersionColumn(Column):
+    title = 'Last release'
+    css_class = 'version'
+
+    def inner_html(self, project):
+        return html('a', project.last_tag, href=project.pypi_url)
+
+
+class DateColumn(Column):
+    title = 'Date'
+    css_class = 'date'
+    js_sort_rule = ('sortTitleAttribute', 'ISO-8601 date in title')
+
+    def tooltip(self, project):
+        return project.last_tag_date
+
+    def inner_html(self, project):
+        return nice_date(project.last_tag_date)
+
+
+class ChangesColumn(Column):
+    title = 'Pending changes'
+    css_class = 'changes'
+
+    def inner_html(self, project):
+        return html('a', pluralize(len(project.pending_commits), 'commits'),
+                    href=project.compare_url)
+
+
+class StatusColumn(Column):
+    css_class = 'status'
+    css_rules = Column.css_rules + CSS('''
+    % if column is not page.columns[-1]:
+      #${page.name} th.${css_class},
+      #${page.name} td.${css_class} { padding-right: 0; }
+    % endif
+    ''')
+    js_sort_rule = ('sortAltText', 'build status in alt text')
+
+    def inner_html(self, project):
+        url, image_url, status = self.get_status(project)
+        if not url:
+            return '-'
+        return html(
+            'a',
+            html('img', src=image_url, alt=status, height=20),
+            href=url,
+        )
+
+    def get_status(self, project):
+        raise NotImplementedError
+
+
+class TravisColumn(StatusColumn):
+    title = 'Travis CI'
+    title_narrow = 'Travis CI status'
+
+    def get_status(self, project):
+        return (
+            project.travis_url,
+            project.travis_image_url,
+            project.travis_status,
+        )
+
+
+class JenkinsColumn(StatusColumn):
+    js_sort_rule = ('sortAltText', 'jenkins build status in alt text')
+
+    def __init__(self, job, **kwargs):
+        super().__init__(title=f"Jenkins {job.title}", **kwargs)
+        self.title_narrow = f"Jenkins {job.title} status"
+        self.job = job
+
+    def get_status(self, project):
+        return (
+            project.get_jenkins_url(self.job),
+            project.get_jenkins_image_url(self.job),
+            project.get_jenkins_status(self.job),
+        )
+
+
+class AppveyorColumn(StatusColumn):
+    title = 'Appveyor'
+    title_narrow = 'Appveyor status'
+    js_sort_rule = ('sortAltText', 'appveyor build status in alt text')
+
+    def get_status(self, project):
+        return (
+            project.appveyor_url,
+            project.appveyor_image_url,
+            project.appveyor_status,
+        )
+
+
+class CoverallsColumn(StatusColumn):
+    title = 'Coveralls'
+    title_narrow = 'Coveralls status'
+    js_sort_rule = ('sortCoverage', 'coverage percentage in data attribute')
+
+    def get_data(self, project):
+        return dict(
+            coverage=project.coverage(),
+        )
+
+    def get_status(self, project):
+        return (
+            project.coveralls_url,
+            project.coveralls_image_url,
+            project.coverage('{}%', 'unknown'),
+        )
+
+
+class DataColumn(Column):
+    css_rules = Column.css_rules + CSS('''
+      #${page.name} span.new { font-weight: bold; }
+      #${page.name} span.none { color: #999; }
+    ''')
+
+    def inner_html(self, project):
+        new, total = self.get_counts(project)
+        return html(
+            'a',
+            href=self.get_url(project),
+            title=f'{new} new, {total} total',
+            body=markupsafe.Markup(' ').join((
+                html('span', new, class_='new' if new else 'none'),
+                html(None if total else 'span', f'({total})', class_='none'),
+            )),
+        )
+
+    def get_data(self, project):
+        new, total = self.get_counts(project)
+        return dict(
+            new=new,
+            total=total,
+        )
+
+    def get_counts(self, project):
+        raise NotImplementedError
+
+
+class IssuesColumn(DataColumn):
+    title = 'Issues'
+    title_narrow = 'GitHub issues'
+    css_class = 'issues'
+    js_sort_rule = ('sortIssues', 'issue counts in data attributes')
+
+    def get_url(self, project):
+        return project.issues_url
+
+    def get_counts(self, project):
+        return (
+            project.unlabeled_open_issues_count,
+            project.open_issues_count,
+        )
+
+
+class PullsColumn(DataColumn):
+    title = 'PRs'
+    title_narrow = 'GitHub pull requests'
+    css_class = 'pulls'
+    js_sort_rule = ('sortIssues', 'PR counts in data attributes')
+
+    def get_url(self, project):
+        return project.pulls_url
+
+    def get_counts(self, project):
+        return (
+            project.unlabeled_open_pulls_count,
+            project.open_pulls_count,
+        )
+
+
+class PythonSupportColumn(Column):
+    css_rules = Column.css_rules + CSS('''
+      #${page.name} span.no,
+      #${page.name} span.yes {
+        padding: 2px 4px 3px 4px;
+        font-family: DejaVu Sans, Verdana, Geneva, sans-serif;
+        font-size: 11px;
+        position: relative;
+        bottom: 2px;
+      }
+      #${page.name} span.no {
+        color: #888;
+      }
+      #${page.name} span.yes {
+        color: #fff;
+        background-color: #4c1;
+        text-shadow: 0px 1px 0px rgba(1, 1, 1, 0.3);
+        border-radius: 4px;
+      }
+    ''')
+
+    def __init__(self, ver, **kwargs):
+        super().__init__(title=ver, **kwargs)
+        self.title_narrow = ver if ver.startswith('PyPy') else f"Python {ver}"
+        self.ver = ver
+        if ver in PYTHON_EOL_DATE:
+            self.title_tooltip = f"Supported until {PYTHON_EOL_DATE[ver]}"
+
+    def inner_html(self, project):
+        supported = self.ver in project.python_versions
+        return html('span', class_='yes' if supported else 'no',
+                    body='+' if supported else '\u2212')
+
+
+def get_report_pages(config):
+    return Pages([
+        Page('Release status', [
+            NameColumn(),
+            VersionColumn(),
+            DateColumn(align='right'),
+            ChangesColumn(align='right'),
+            TravisColumn('Build status', align='right'),
+        ]),
+        Page('Maintenance', [
+            NameColumn(width='15%'),
+            TravisColumn(width='15%'),
+            *(JenkinsColumn(job, width='15%') for job in config.jenkins_jobs),
+            AppveyorColumn(width="15%"),
+            CoverallsColumn(width="15%"),
+            IssuesColumn(width="5%", align='right'),
+            PullsColumn(width="5%", align='right'),
+        ]),
+        Page('Python versions', [
+            NameColumn(),
+            *(PythonSupportColumn(ver) for ver in PYTHON_VERSIONS),
+            CoverallsColumn('Test coverage'),
+        ]),
+    ])
+
+
+template = Template('''\
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
@@ -718,37 +1123,7 @@ eol_date = {
       .tablesorter-icon { color: #ddd; }
       .tablesorter-header { cursor: default; }
       .invisible { visibility: hidden; }
-      #release-status th.date,
-      #release-status td.date,
-      #release-status th.changes,
-      #release-status td.changes,
-      #release-status th.status,
-      #release-status td.status { text-align: right; }
-      #maintenance th.status,
-      #maintenance td.status { padding-right: 0; }
-      #maintenance th.issues,
-      #maintenance td.issues,
-      #maintenance th.pulls,
-      #maintenance td.pulls { text-align: right; }
-      #maintenance span.new { font-weight: bold; }
-      #maintenance span.none { color: #999; }
-      #python-versions span.no,
-      #python-versions span.yes {
-        padding: 2px 4px 3px 4px;
-        font-family: DejaVu Sans, Verdana, Geneva, sans-serif;
-        font-size: 11px;
-        position: relative;
-        bottom: 2px;
-      }
-      #python-versions span.no {
-        color: #888;
-      }
-      #python-versions span.yes {
-        color: #fff;
-        background-color: #4c1;
-        text-shadow: 0px 1px 0px rgba(1, 1, 1, 0.3);
-        border-radius: 4px;
-      }
+      ${report_pages.stylesheet().strip()}
       footer { padding-top: 16px; padding-bottom: 16px; text-align: center; color: #999; }
 
       @media (max-width: 992px) {
@@ -776,29 +1151,7 @@ eol_date = {
           padding: 0px 2em 8px 2em !important;
           border-top: none !important;
         }
-        #release-status td.version:before { content: "Last release: "; }
-        #release-status td.date:before { content: "Date: "; }
-        #release-status td.changes:before { content: "Pending changes: "; }
-        #release-status td.status:before { content: "Travis CI status: "; }
-        #release-status td.date,
-        #release-status td.changes,
-        #release-status td.status { text-align: left; }
-        #maintenance td.version:before { content: "Last release: "; }
-        #maintenance td:nth-child(2):before { content: "Travis CI status: "; }
-<% n = 2 %>\\
-% for n, job in enumerate(config.jenkins_jobs, start=n+1):
-        #maintenance td:nth-child(${n}):before { content: "Jenkins ${job.title} status: "; }
-% endfor
-        #maintenance td:nth-child(${n+1}):before { content: "Appveyor status: "; }
-        #maintenance td:nth-child(${n+2}):before { content: "Coveralls status: "; }
-        #maintenance td.issues:before { content: "GitHub issues: "; }
-        #maintenance td.pulls:before { content: "GitHub pull requests: "; }
-        #maintenance td.issues,
-        #maintenance td.pulls { text-align: left; }
-% for n, ver in enumerate(versions, start=2):
-        #python-versions td:nth-child(${n}):before { content: "${ver if ver.startswith('PyPy') else 'Python %s' % ver}: "; }
-% endfor
-        #python-versions td[data-coverage]:before { content: "Coveralls status: "; }
+        ${report_pages.stylesheet('narrow').strip()}
         td:before { display: inline-block; width: 50%; }
       }
     </style>
@@ -810,173 +1163,55 @@ eol_date = {
     <![endif]-->
   </head>
 
-<%def name="project_name(project)">\\
-<a href="${project.url}">${project.name}</a>\\
-% if project.branch != 'master':
- (${project.branch})\\
-% endif
-</%def>
-
-<%def name="issues(new_count, total_count, url)">\\
-<a href="${url}" title="${new_count} new, ${total_count} total">\\
-% if new_count == 0:
-<span class="none">${new_count}</span> \\
-% else:
-<span class="new">${new_count}</span> \\
-% endif
-% if total_count == 0:
-<span class="none">(${total_count})</span>\\
-% else:
-(${total_count})\\
-% endif
-</a>\\
-</%def>
-
   <body role="document">
     <div class="container">
 
       <div class="page-header">
         <div class="btn-group pull-right" role="menu">
-          <a class="btn btn-primary" data-toggle="tab" href="#release-status">Release status</a>
-          <a class="btn btn-default" data-toggle="tab" href="#maintenance">Maintenance</a>
-          <a class="btn btn-default" data-toggle="tab" href="#python-versions">Python versions</a>
+% for idx, page in enumerate(report_pages):
+          <a class="btn ${'btn-primary' if idx == 0 else 'btn-default'}" data-toggle="tab" href="#${page.name}">${page.title}</a>
+% endfor
         </div>
         <h1>Projects</h1>
       </div>
 
       <div class="tab-content">
 
-        <div class="tab-pane active" id="release-status">
+% for idx, page in enumerate(report_pages):
+        <div class="tab-pane${' active' if idx == 0 else ''}" id="${page.name}">
           <table class="table table-hover">
-            <thead>
-              <tr>
-                <th class="name">Name</th>
-                <th class="version">Last release</th>
-                <th class="date">Date</th>
-                <th class="changes">Pending changes</th>
-                <th class="status">Build status</th>
-              </tr>
-            </thead>
-            <tbody>
-% for project in projects:
-              <tr>
-                <td class="name">${project_name(project)}</td>
-                <td class="version"><a href="${project.pypi_url}">${project.last_tag}</a></td>
-                <td class="date" title="${project.last_tag_date}">${nice_date(project.last_tag_date)}</td>
-                <td class="changes"><a href="${project.compare_url}">${pluralize(len(project.pending_commits), 'commits')}</a></td>
-%     if project.travis_url:
-                <td class="status"><a href="${project.travis_url}"><img src="${project.travis_image_url}" alt="${project.travis_status}" height="20"></a></td>
-%     else:
-                <td class="status">-</td>
-%     endif
-              </tr>
-% endfor
-            </tbody>
-          </table>
-        </div>
-
-        <div class="tab-pane" id="maintenance">
-          <table class="table table-hover">
+%     if any(column.width for column in page.columns):
             <colgroup>
-              <col width="15%">
-              <col width="15%">
-% for job in config.jenkins_jobs:
-              <col width="15%">
-% endfor
-              <col width="15%">
-              <col width="15%">
-              <col width="5%">
-              <col width="5%">
+%         for column in page.columns:
+              ${column.col()}
+%         endfor
             </colgroup>
+%     endif
             <thead>
               <tr>
-                <th class="name">Name</th>
-                <th class="status">Travis CI</th>
-% for job in config.jenkins_jobs:
-                <th class="status">Jenkins ${job.title}</th>
-% endfor
-                <th class="status">Appveyor</th>
-                <th class="status">Coveralls</th>
-                <th class="issues">Issues</th>
-                <th class="pulls">PRs</th>
+%     for column in page.columns:
+                ${column.th()}
+%     endfor
               </tr>
             </thead>
             <tbody>
-% for project in projects:
+%     for project in projects:
               <tr>
-                <td class="name">${project_name(project)}</td>
-%     if project.travis_url:
-                <td class="status"><a href="${project.travis_url}"><img src="${project.travis_image_url}" alt="${project.travis_status}" height="20"></a></td>
-%     else:
-                <td class="status">-</td>
-%     endif
-% for job in config.jenkins_jobs:
-%     if project.uses_jenkins:
-                <td class="status"><a href="${project.get_jenkins_url(job)}"><img src="${project.get_jenkins_image_url(job)}" alt="${project.get_jenkins_status(job)}" height="20"></a></td>
-%     else:
-                <td class="status">-</td>
-%     endif
-% endfor
-%     if project.appveyor_url:
-                <td class="status"><a href="${project.appveyor_url}"><img src="${project.appveyor_image_url}" alt="${project.appveyor_status}" height="20"></a></td>
-%     else:
-                <td class="status">-</td>
-%     endif
-%     if project.coveralls_url:
-                <td class="status" data-coverage="${project.coverage()}"><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt="${project.coverage('{}%', 'unknown')}" height="20"></a></td>
-%     else:
-                <td class="status">-</td>
-%     endif
-%     for css_class, new_count, total_count, url in [('issues', project.unlabeled_open_issues_count, project.open_issues_count, project.issues_url), ('pulls', project.unlabeled_open_pulls_count, project.open_pulls_count, project.pulls_url)]:
-                <td class="${css_class}" data-total="${total_count}" data-new=${new_count}>${issues(new_count, total_count, url)}</td>
-%     endfor
+%         for column in page.columns:
+                ${column.td(project)}
+%         endfor
               </tr>
-% endfor
+%     endfor
             </tbody>
           </table>
         </div>
 
-        <div class="tab-pane" id="python-versions">
-          <table class="table table-hover">
-            <thead>
-              <tr>
-                <th>Name</th>
-% for ver in versions:
-%     if ver in eol_date:
-                <th title="Supported until ${eol_date[ver]}">${ver}</th>
-%     else:
-                <th>${ver}</th>
-%     endif
 % endfor
-                <th>Test coverage</th>
-              </tr>
-            </thead>
-            <tbody>
-% for project in projects:
-              <tr>
-                <td>${project_name(project)}</td>
-%     for ver in versions:
-%         if ver in project.python_versions:
-                <td><span class="yes">+</span></td>
-%         else:
-                <td><span class="no">&#x2212;</span></td>
-%         endif
-%     endfor
-%     if project.coveralls_url:
-                <td data-coverage="${project.coverage()}"><a href="${project.coveralls_url}"><img src="${project.coveralls_image_url}" alt=" ${project.coverage('{}%', 'unknown')}" height="20"></a></td>
-%     else:
-                <td>-</td>
-%     endif
-              </tr>
-% endfor
-            </tbody>
-          </table>
-        </div>
       </div>
     </div>
     <footer>
       <div class="container">
-        ${config.footer|n}
+${config.footer.strip()}
       </div>
     </footer>
     <script src="assets/js/jquery.min.js"></script>
@@ -1012,23 +1247,6 @@ eol_date = {
         var sortAltText = function(node, table, cellIndex) {
           return $(node).attr('alt');
         };
-        $("#release-status table").tablesorter({
-          theme: "bootstrap",
-          widgets: ['uitheme'],
-          widthFixed: true,
-          headerTemplate: ' {content} {icon}',
-          onRenderHeader: function(idx, config, table) {
-            if (idx >= 2) {
-              var $this = $(this);
-              $this.find('div').prepend($this.find('i'));
-            }
-          },
-          sortList: [[0, 0]],
-          textExtraction: {
-            2: sortTitleAttribute,  // ISO-8601 date in title
-            4: sortAltText          // build status in alt text
-          }
-        });
         var sortCoverage = function(node, table, cellIndex) {
           return $(node).attr('data-coverage');
         };
@@ -1036,40 +1254,19 @@ eol_date = {
           /* note this can't start with a digit or tablesorter will discard the 2nd sort key */
           return 'new ' + $(node).attr('data-new') + ' old ' + $(node).attr('data-total');
         };
-        $("#maintenance table").tablesorter({
+% for page in report_pages:
+        $("#${page.name} table").tablesorter({
           theme: "bootstrap",
           widgets: ['uitheme'],
           widthFixed: true,
           headerTemplate: ' {content} {icon}',
-          onRenderHeader: function(idx, config, table) {
-            if (idx >= 6) {
-              var $this = $(this);
-              $this.find('div').prepend($this.find('i'));
-            }
-          },
+${page.js_render_header()}\\
           sortList: [[0, 0]],
           textExtraction: {
-            1: sortAltText, // travis ci build status in alt text
-<% n = 1 %>\\
-% for n, job in enumerate(config.jenkins_jobs, start=n+1):
-            ${n}: sortAltText, // jenkins build status in alt text
+            ${page.js_text_extractors()}
+          }
+        });
 % endfor
-            ${n+1}: sortAltText, // appveyor build status in alt text
-            ${n+2}: sortCoverage, // coverage percentage in data attribute
-            ${n+3}: sortIssues, // issue counts in data attributes
-            ${n+4}: sortIssues  // PR counts in data attributes
-          }
-        });
-        $("#python-versions table").tablesorter({
-          theme: "bootstrap",
-          widgets: ['uitheme'],
-          widthFixed: true,
-          headerTemplate: '{content} {icon}',
-          sortList: [[0, 0]],
-          textExtraction: {
-            ${1 + len(versions)}: sortCoverage
-          }
-        });
         var dont_recurse = false;
         $('a[data-toggle="tab"]').on('shown.bs.tab', function(e) {
           $(e.target).siblings('.btn-primary').removeClass('btn-primary').addClass('btn-default');
@@ -1092,7 +1289,7 @@ eol_date = {
         $(window).bind('hashchange', function() {
           if (!dont_recurse) {
             dont_recurse = true;
-            $('a[href="' + (location.hash || '#release-status') + '"]').tab('show');
+            $('a[href="' + (location.hash || '#${report_pages.pages[0].name}') + '"]').tab('show');
             dont_recurse = false;
           }
         });
@@ -1207,10 +1404,11 @@ def print_report(projects, verbose, file=None):
 def print_html_report(projects, config, filename=None):
     # I want atomicity: don't destroy old .html file if an exception happens
     # during rendering.
-    html = template.render_unicode(projects=list(projects),
-                                   config=config,
-                                   nice_date=nice_date,
-                                   pluralize=pluralize)
+    html = template.render_unicode(
+        projects=projects,
+        config=config,
+        report_pages=get_report_pages(config),
+    )
     if filename and filename != '-':
         with open(filename, 'w') as f:
             f.write(html)

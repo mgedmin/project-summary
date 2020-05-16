@@ -1,6 +1,17 @@
+import markupsafe
 import pytest
 
-from summary import to_seconds, nice_date
+from summary import (
+    Column,
+    DataColumn,
+    Page,
+    Pages,
+    StatusColumn,
+    Template,
+    html,
+    nice_date,
+    to_seconds,
+)
 
 
 @pytest.mark.parametrize(['input', 'expected'], [
@@ -23,3 +34,119 @@ def test_to_seconds(input, expected):
 
 def test_nice_date():
     nice_date("2019-06-06 17:43:14 +0300")  # should not raise
+
+
+def test_html():
+    assert html(None, 'foo bar', class_='ignored') == 'foo bar'
+    assert html(None, 'foo < bar') == 'foo &lt; bar'
+    assert html('span', 'foo bar') == '<span>foo bar</span>'
+    assert html('span', 'foo < bar') == '<span>foo &lt; bar</span>'
+    assert html('span', 'foo', title="bar") == '<span title="bar">foo</span>'
+    assert html('span', 'foo', title="b>r") == '<span title="b&gt;r">foo</span>'
+    assert html('span', 'foo', title='b"r') == '<span title="b&#34;r">foo</span>'
+    assert html('span', 'foo', class_="bar") == '<span class="bar">foo</span>'
+    assert html('img', src="a.png") == '<img src="a.png">'
+    assert html('a', html('img', src="a.png"), href="/") == '<a href="/"><img src="a.png"></a>'
+    assert isinstance(html('hello'), markupsafe.Markup)
+
+
+def test_template_rendering_escapes():
+    template = Template('${arg}')
+    assert template.render_unicode(arg='<hello>') == '&lt;hello&gt;'
+
+
+def test_template_rendering_accepts_markup():
+    template = Template('${arg}')
+    assert template.render_unicode(arg=html('hello')) == '<hello></hello>'
+
+
+def test_template_rendering_accepts_numbers():
+    template = Template('${arg}')
+    assert template.render_unicode(arg=42) == '42'
+
+
+def test_Column_stylesheet():
+    col = Column()
+    page = Page('foo', [col])
+    assert col.stylesheet(page) == ''
+
+
+def test_Column_stylesheet_with_alignment():
+    col = Column(css_class='bork', align='right')
+    page = Page('foo', [col])
+    assert col.stylesheet(page) == '''\
+      #foo th.bork,
+      #foo td.bork { text-align: right; }
+    '''.rstrip(' ')
+
+
+def test_Column_stylesheet_narrow():
+    col = Column('Croak', css_class='frog')
+    page = Page('foo', [col])
+    assert markupsafe.escape(col.stylesheet(page, 'narrow')) == '''\
+        #foo td.frog:before { content: "Croak: "; }
+    '''.rstrip(' ')
+
+
+def test_Column_stylesheet_narrow_discrim():
+    pages = Pages([
+        Page('foo', [
+            Column('Croak', css_class='frog'),
+            Column('Ribbit', css_class='frog'),
+        ]),
+    ])
+    assert pages.stylesheet('narrow') == '''\
+        #foo td:nth-child(1):before { content: "Croak: "; }
+        #foo td:nth-child(2):before { content: "Ribbit: "; }
+    '''.rstrip(' ')
+
+
+def test_DataColumn_stylesheet():
+    col = DataColumn(css_class='bork')
+    page = Page('foo', [col])
+    assert col.stylesheet(page) == '''\
+      #foo span.new { font-weight: bold; }
+      #foo span.none { color: #999; }
+    '''.rstrip(' ')
+
+
+def test_DataColumn_stylesheet_with_alignment():
+    col = DataColumn(css_class='bork', align='right')
+    page = Page('foo', [col])
+    assert col.stylesheet(page) == '''\
+      #foo th.bork,
+      #foo td.bork { text-align: right; }
+      #foo span.new { font-weight: bold; }
+      #foo span.none { color: #999; }
+    '''.rstrip(' ')
+
+
+def test_StatusColumn_stylesheet_last():
+    pages = Pages([Page('foo', [
+        StatusColumn(css_class='bork'),
+        StatusColumn(css_class='fish'),
+    ])])
+    assert pages.stylesheet() == '''\
+      #foo th.bork,
+      #foo td.bork { padding-right: 0; }
+    '''.rstrip(' ')
+
+
+def test_Pages_stylesheet():
+    pages = Pages([
+        Page('foo', [
+            Column(css_class='bork', align='right'),
+            Column(css_class='fish', align='right'),
+        ]),
+        Page('bar', [
+            Column(css_class='bork', align='right'),
+        ])
+    ])
+    assert pages.stylesheet() == '''\
+      #foo th.bork,
+      #foo td.bork { text-align: right; }
+      #foo th.fish,
+      #foo td.fish { text-align: right; }
+      #bar th.bork,
+      #bar td.bork { text-align: right; }
+    '''.rstrip(' ')
