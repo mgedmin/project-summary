@@ -5,6 +5,7 @@ Generate a summary for all my projects.
 
 import argparse
 import datetime
+import functools
 import glob
 import itertools
 import linecache
@@ -45,6 +46,10 @@ class reify(object):
         value = self.fn(obj)
         obj.__dict__[self.fn.__name__] = value
         return value
+
+
+def collect(fn):
+    return functools.wraps(fn)(lambda *a, **kw: list(fn(*a, **kw)))
 
 
 def format_cmd(cmd, cwd=None):
@@ -618,6 +623,7 @@ class Project(object):
         return '{base}/pulls'.format(base=self.url)
 
 
+@collect
 def get_projects(config, session):
     for path in get_repos(config):
         p = Project(path, config, session)
@@ -1161,6 +1167,8 @@ def main():
     projects = get_projects(config, session)
     if args.html:
         try:
+            if args.verbose:
+                print_report(projects, args.verbose - 1)
             print_html_report(projects, config, args.output_file)
         except GitHubError as e:
             sys.exit("GitHub error: %s" % e)
@@ -1190,6 +1198,8 @@ def print_report(projects, verbose):
             if verbose >= 2:
                 print("  {}".format(project.working_tree))
             print("  Python versions: {}".format(", ".join(project.python_versions)))
+            print("  Issues: {} new, {} total".format(project.unlabeled_open_issues_count, project.open_issues_count))
+            print("  PRs: {} new, {} total".format(project.unlabeled_open_issues_count, project.open_pulls_count))
             print("")
 
 
