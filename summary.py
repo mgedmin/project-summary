@@ -1168,7 +1168,7 @@ def main():
     if args.html:
         try:
             if args.verbose:
-                print_report(projects, args.verbose - 1)
+                print_report(projects, args.verbose - 1, file=sys.stderr)
             print_html_report(projects, config, args.output_file)
         except GitHubError as e:
             sys.exit("GitHub error: %s" % e)
@@ -1183,24 +1183,25 @@ def main():
         print_report(projects, args.verbose)
 
 
-def print_report(projects, verbose):
+def print_report(projects, verbose, file=None):
+    print_ = functools.partial(print, file=file) if file else print
     for project in projects:
         project.precompute('name pending_commits last_tag last_tag_date'.split())
         if verbose >= 1:
             project.precompute('compare_url python_versions'.split())
         if verbose >= 2:
             project.precompute('working_tree'.split())
-        print("{name:24} {commits:4} commits since {release:6} ({date})".format(
+        print_("{name:24} {commits:4} commits since {release:6} ({date})".format(
             name=project.name, commits=len(project.pending_commits),
             release=project.last_tag, date=nice_date(project.last_tag_date)))
         if verbose >= 1:
-            print("  {}".format(project.compare_url))
+            print_("  {}".format(project.compare_url))
             if verbose >= 2:
-                print("  {}".format(project.working_tree))
-            print("  Python versions: {}".format(", ".join(project.python_versions)))
-            print("  Issues: {} new, {} total".format(project.unlabeled_open_issues_count, project.open_issues_count))
-            print("  PRs: {} new, {} total".format(project.unlabeled_open_issues_count, project.open_pulls_count))
-            print("")
+                print_("  {}".format(project.working_tree))
+            print_("  Python versions: {}".format(", ".join(project.python_versions)))
+            print_("  Issues: {} new, {} total".format(project.unlabeled_open_issues_count, project.open_issues_count))
+            print_("  PRs: {} new, {} total".format(project.unlabeled_open_issues_count, project.open_pulls_count))
+            print_("")
 
 
 def print_html_report(projects, config, filename=None):
