@@ -726,10 +726,10 @@ class Pages:
         styles = []
         for page in self.pages:
             for column in page.columns:
-                rules = column.stylesheet(page, variant)
-                if rules and rules not in seen:
-                    seen.add(rules)
-                    styles.append(rules)
+                for rules in column.stylesheet_rules(page, variant):
+                    if rules and rules not in seen:
+                        seen.add(rules)
+                        styles.append(rules)
         return markupsafe.Markup('').join(styles)
 
 
@@ -774,7 +774,11 @@ def strip_leading_newline_and_trailing_spaces(rules):
     return rules.lstrip('\n').rstrip(' ')
 
 
-JS = CSS = strip_leading_newline_and_trailing_spaces
+JS = strip_leading_newline_and_trailing_spaces
+
+
+def CSS(rules):
+    return [strip_leading_newline_and_trailing_spaces(rules)]
 
 
 class Column:
@@ -812,13 +816,13 @@ class Column:
             sorter += ","
         return f'{index}: {sorter:<20} // {comment}'
 
-    def stylesheet(self, page, variant=None):
+    def stylesheet_rules(self, page, variant=None):
         if variant:
             rules = getattr(self, f'css_rules_{variant}')
         else:
             rules = self.css_rules
         if not rules:
-            return None
+            return []
         unique_class = all(col.css_class != self.css_class
                            for col in page.columns
                            if col != self)
@@ -826,13 +830,18 @@ class Column:
             discrim = f":nth-child({page.columns.index(self) + 1})"
         else:
             discrim = f".{self.css_class}"
-        template = Template(rules, default_filters=['str', 'n'])
-        return markupsafe.Markup(template.render_unicode(
-            page=page,
-            column=self,
-            css_class=self.css_class,
-            discrim=discrim,
-        ))
+        return [
+            markupsafe.Markup(css)
+            for css in [
+                Template(rule, default_filters=['str', 'n']).render_unicode(
+                    page=page,
+                    column=self,
+                    css_class=self.css_class,
+                    discrim=discrim,
+                )
+                for rule in rules
+            ] if css
+        ]
 
     def col(self):
         return html('col', width=self.width)

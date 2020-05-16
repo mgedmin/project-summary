@@ -65,27 +65,27 @@ def test_template_rendering_accepts_numbers():
     assert template.render_unicode(arg=42) == '42'
 
 
-def test_Column_stylesheet():
+def test_Column_stylesheet_rules():
     col = Column()
     page = Page('foo', [col])
-    assert col.stylesheet(page) == ''
+    assert col.stylesheet_rules(page) == []
 
 
-def test_Column_stylesheet_with_alignment():
+def test_Column_stylesheet_rules_with_alignment():
     col = Column(css_class='bork', align='right')
     page = Page('foo', [col])
-    assert col.stylesheet(page) == '''\
+    assert col.stylesheet_rules(page) == ['''\
       #foo th.bork,
       #foo td.bork { text-align: right; }
-    '''.rstrip(' ')
+    '''.rstrip(' ')]
 
 
 def test_Column_stylesheet_narrow():
     col = Column('Croak', css_class='frog')
     page = Page('foo', [col])
-    assert markupsafe.escape(col.stylesheet(page, 'narrow')) == '''\
+    assert col.stylesheet_rules(page, 'narrow') == ['''\
         #foo td.frog:before { content: "Croak: "; }
-    '''.rstrip(' ')
+    '''.rstrip(' ')]
 
 
 def test_Column_stylesheet_narrow_discrim():
@@ -104,21 +104,22 @@ def test_Column_stylesheet_narrow_discrim():
 def test_DataColumn_stylesheet():
     col = DataColumn(css_class='bork')
     page = Page('foo', [col])
-    assert col.stylesheet(page) == '''\
+    assert col.stylesheet_rules(page) == ['''\
       #foo span.new { font-weight: bold; }
       #foo span.none { color: #999; }
-    '''.rstrip(' ')
+    '''.rstrip(' ')]
 
 
 def test_DataColumn_stylesheet_with_alignment():
     col = DataColumn(css_class='bork', align='right')
     page = Page('foo', [col])
-    assert col.stylesheet(page) == '''\
+    assert col.stylesheet_rules(page) == ['''\
       #foo th.bork,
       #foo td.bork { text-align: right; }
+    '''.rstrip(' '), '''\
       #foo span.new { font-weight: bold; }
       #foo span.none { color: #999; }
-    '''.rstrip(' ')
+    '''.rstrip(' ')]
 
 
 def test_StatusColumn_stylesheet_last():
