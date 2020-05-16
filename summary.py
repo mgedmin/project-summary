@@ -21,14 +21,14 @@ from configparser import ConfigParser
 from io import StringIO
 
 import arrow
-import mako.template
 import mako.exceptions
+import mako.template
 import requests
 import requests_cache
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.12.3'
+__version__ = '0.13.0'
 
 log = logging.getLogger('project-summary')
 
