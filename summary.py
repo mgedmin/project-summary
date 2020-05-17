@@ -164,7 +164,10 @@ class Configuration(object):
 
     @reify
     def footer(self):
-        return markupsafe.Markup(self._config.get('project-summary', 'footer'))
+        return markupsafe.Markup(
+            self._config.get('project-summary', 'footer')
+            .replace('{last_update}', arrow.now().format())
+        )
 
 
 #
