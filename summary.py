@@ -1362,6 +1362,7 @@ def main():
         )
 
     session = requests.Session()
+    session.headers['User-Agent'] = f'project-summary/{__version__}'
 
     config = Configuration()
     if args.fetch is not None:
