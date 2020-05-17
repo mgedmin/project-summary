@@ -8,6 +8,7 @@ import datetime
 import functools
 import glob
 import itertools
+import json
 import linecache
 import logging
 import math
@@ -25,6 +26,7 @@ import arrow
 import mako.exceptions
 import mako.template
 import markupsafe
+import pypistats
 import requests
 import requests_cache
 
@@ -358,7 +360,7 @@ def get_supported_python_versions(repo_path):
     ]
 
 
-class Project(object):
+class Project:
 
     def __init__(self, working_tree, config, session):
         self.working_tree = working_tree
@@ -622,6 +624,15 @@ class Project(object):
         if not self.is_on_github:
             return None
         return '{base}/pulls'.format(base=self.url)
+
+    @reify
+    def pypistats_url(self):
+        return f'https://pypistats.org/packages/{self.name}'
+
+    @reify
+    def downloads(self):
+        data = json.loads(pypistats.recent(self.name, format='json'))
+        return data['data']['last_month']
 
 
 @collect
@@ -1088,6 +1099,17 @@ class PythonSupportColumn(Column):
                     body='+' if supported else '\u2212')
 
 
+class PypiStatsColumn(Column):
+    title = 'Downloads'
+    title_tooltip = 'PyPI downloads last month'
+    title_narrow = 'Downloads last month'
+    css_class = 'downloads'
+
+    def inner_html(self, project):
+        return html('a', href=project.pypistats_url,
+                    body=f'{project.downloads:,}')
+
+
 def get_report_pages(config):
     return Pages([
         Page('Release status', [
@@ -1103,6 +1125,7 @@ def get_report_pages(config):
             *(JenkinsColumn(job, width='15%') for job in config.jenkins_jobs),
             AppveyorColumn(width="15%"),
             CoverallsColumn(width="15%"),
+            PypiStatsColumn(width='5%', align='right'),
             IssuesColumn(width="5%", align='right'),
             PullsColumn(width="5%", align='right'),
         ]),

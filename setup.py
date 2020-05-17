@@ -26,13 +26,12 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: GNU General Public License (GPL)',
         'Operating System :: POSIX',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Private :: Do Not Upload To PyPI',  # it rejects unknown classifiers ;)
     ],
-    python_requires='>= 3.5',
+    python_requires='>= 3.6',
     license='GPL',
 
     py_modules=['summary'],
@@ -41,6 +40,7 @@ setup(
         'arrow',
         'mako',
         'markupsafe',
+        'pypistats',
         'requests',
         'requests-cache',
     ],
