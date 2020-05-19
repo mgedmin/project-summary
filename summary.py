@@ -171,7 +171,7 @@ class Configuration(object):
 
 
 #
-# Data extraction
+# GitHub API client
 #
 
 class GitHubError(Exception):
@@ -808,6 +808,7 @@ class Column:
     ''')
     css_rules_narrow = CSS('''
         #${page.name} td${discrim}:before { content: "${column.title_narrow or column.title|h}: "; }
+    ''') + CSS('''
     % if column.align:
         #${page.name} td${discrim} { text-align: left; }
     % endif
