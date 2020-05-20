@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python, self.name)3
 """
 Generate a summary for all my projects.
 """
@@ -32,7 +32,7 @@ import requests_cache
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.13.0'
+__version__ = '0.14.0'
 
 log = logging.getLogger('project-summary')
 
@@ -168,6 +168,17 @@ class Configuration(object):
             self._config.get('project-summary', 'footer')
             .replace('{last_update}', arrow.now().format())
         )
+
+    @reify
+    def pypi_name_map(self):
+        pypi_name_map = {}
+        for line in self._config.get('project-summary', 'pypi_name_map').splitlines():
+            k, _, v = line.partition(':')
+            k = k.strip()
+            v = v.strip()
+            if k and v:
+                pypi_name_map[k] = v
+        return pypi_name_map
 
 
 #
@@ -439,9 +450,13 @@ class Project:
         else:
             return os.path.basename(self.working_tree)
 
+    @reify
+    def pypi_name(self):
+        return self.config.pypi_name_map.get(self.name, self.name)
+
     @property
     def pypi_url(self):
-        return 'https://pypi.org/project/{name}/'.format(name=self.name)
+        return 'https://pypi.org/project/{name}/'.format(name=self.pypi_name)
 
     @property
     def jenkins_job(self):
@@ -630,12 +645,17 @@ class Project:
 
     @reify
     def pypistats_url(self):
-        return f'https://pypistats.org/packages/{self.name}'
+        return f'https://pypistats.org/packages/{self.pypi_name}'
 
     @reify
     def downloads(self):
-        data = json.loads(pypistats.recent(self.name, format='json'))
-        return data['data']['last_month']
+        try:
+            data = json.loads(pypistats.recent(self.pypi_name, format='json'))
+        except requests.HTTPError as e:
+            log.warning(e)
+            return None
+        else:
+            return data['data']['last_month']
 
 
 @collect
@@ -1111,7 +1131,7 @@ class PypiStatsColumn(Column):
 
     def inner_html(self, project):
         return html('a', href=project.pypistats_url,
-                    body=f'{project.downloads:,}')
+                    body=f'{project.downloads:,}' if project.downloads is not None else '-')
 
 
 def get_report_pages(config):
