@@ -1,3 +1,5 @@
+import subprocess
+
 import markupsafe
 import pytest
 
@@ -11,6 +13,7 @@ from summary import (
     format_cmd,
     html,
     nice_date,
+    pipe,
     reify,
     to_seconds,
 )
@@ -72,6 +75,18 @@ def test_format_cmd():
 
 def test_format_cmd_with_working_dir_change():
     assert format_cmd(['git', 'log'], cwd='/path') == 'cd /path && git log'
+
+
+def test_pipe():
+    assert pipe('echo', 'hi') == 'hi\n'
+
+
+def test_pipe_warn_on_failure():
+    assert pipe('false') == ''
+
+
+def test_pipe_warn_on_stderr():
+    assert pipe('sh', '-c', 'echo boo 1>&2', stderr=subprocess.PIPE) == ''
 
 
 @pytest.mark.parametrize(['input', 'expected'], [
