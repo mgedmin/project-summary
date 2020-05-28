@@ -1386,7 +1386,7 @@ def main():
                         help='cache HTTP requests on disk in an sqlite database (default: %(default)s)')
     parser.add_argument('--no-http-cache', action='store_false', dest='http_cache',
                         help='disable HTTP disk caching')
-    parser.add_argument('--cache-duration', default='30m',
+    parser.add_argument('--cache-duration', default='30m', type=to_seconds,
                         help='how long to cache HTTP requests (default: %(default)s)')
     parser.add_argument('--fetch', '--update', action='store_true',
                         help='run git fetch in each project')
@@ -1404,7 +1404,7 @@ def main():
         requests_cache.install_cache(
             args.http_cache,
             backend='sqlite',
-            expire_after=to_seconds(args.cache_duration),
+            expire_after=args.cache_duration,
             allowable_codes=(200, 302),
         )
 

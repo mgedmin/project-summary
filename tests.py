@@ -107,6 +107,11 @@ def test_to_seconds(input, expected):
     assert to_seconds(input) == expected
 
 
+def test_to_seconds_error():
+    with pytest.raises(ValueError):
+        to_seconds('uhh')
+
+
 def test_nice_date():
     nice_date("2019-06-06 17:43:14 +0300")  # should not raise
 
