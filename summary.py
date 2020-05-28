@@ -1,4 +1,4 @@
-#!/usr/bin/python, self.name)3
+#!/usr/bin/python3
 """
 Generate a summary for all my projects.
 """
