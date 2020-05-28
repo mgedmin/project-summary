@@ -56,7 +56,7 @@ def collect(fn):
 
 
 def format_cmd(cmd, cwd=None):
-    if 'cwd':
+    if cwd:
         return 'cd %s && %s' % (cwd, ' '.join(cmd))
     else:
         return ' '.join(cmd)

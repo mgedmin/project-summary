@@ -8,6 +8,7 @@ from summary import (
     Pages,
     StatusColumn,
     Template,
+    format_cmd,
     html,
     nice_date,
     reify,
@@ -63,6 +64,14 @@ def test_reify_cache_is_per_instance(capsys):
     assert other.computo_ergo_sum == 4
     assert sth.computations == 1
     assert other.computations == 1
+
+
+def test_format_cmd():
+    assert format_cmd(['git', 'log']) == 'git log'
+
+
+def test_format_cmd_with_working_dir_change():
+    assert format_cmd(['git', 'log'], cwd='/path') == 'cd /path && git log'
 
 
 @pytest.mark.parametrize(['input', 'expected'], [
