@@ -14,8 +14,11 @@ from summary import (
     StatusColumn,
     Template,
     format_cmd,
+    get_project_name,
+    get_project_owner,
     html,
     nice_date,
+    normalize_github_url,
     pipe,
     reify,
     to_seconds,
@@ -208,6 +211,34 @@ def test_Configuration_allows_underscores_or_dashes(tmp_path):
     assert cfg.pypi_name_map == {
         'foo': 'bar',
     }
+
+
+@pytest.mark.parametrize('url, expected', [
+    (None, None),
+    ('', ''),
+    ('git://github.com/mgedmin/project-summary.git',
+     'https://github.com/mgedmin/project-summary'),
+    ('git@github.com:mgedmin/project-summary.git',
+     'https://github.com/mgedmin/project-summary'),
+    ('https://github.com/mgedmin/project-summary',
+     'https://github.com/mgedmin/project-summary'),
+    ('https://github.com/mgedmin/project-summary.git',
+     'https://github.com/mgedmin/project-summary'),
+    ('fridge:git/unrelated.git',
+     'fridge:git/unrelated.git'),
+])
+def test_normalize_github_url(url, expected):
+    assert normalize_github_url(url) == expected
+
+
+def test_get_project_owner():
+    result = get_project_owner('https://github.com/mgedmin/project-summary')
+    assert result == 'mgedmin'
+
+
+def test_get_project_name():
+    result = get_project_name('https://github.com/mgedmin/project-summary')
+    assert result == 'project-summary'
 
 
 def test_nice_date():
