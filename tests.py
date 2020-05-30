@@ -6,6 +6,7 @@ import pytest
 
 import summary
 from summary import (
+    AppveyorColumn,
     CSS,
     ChangesColumn,
     Column,
@@ -687,3 +688,13 @@ def test_JenkinsColumn():
 def test_JenkinsColumn_with_title():
     column = JenkinsColumn(JenkinsJobConfig('{name}', 'Linux'))
     assert column.title_narrow == 'Jenkins Linux status'
+
+
+def test_AppveyorColumn():
+    project = FakeProject(
+        appveyor_url='/status',
+        appveyor_image_url='/status.svg',
+        appveyor_status='unknown',
+    )
+    column = AppveyorColumn()
+    assert column.get_status(project) == ('/status', '/status.svg', 'unknown')
