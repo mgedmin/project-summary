@@ -20,6 +20,7 @@ from summary import (
     NameColumn,
     Page,
     Pages,
+    PullsColumn,
     StatusColumn,
     Template,
     TravisColumn,
@@ -753,3 +754,25 @@ def test_DataColumn_get_url_is_an_abstract_method():
     column = DataColumn()
     with pytest.raises(NotImplementedError):
         column.get_url(project)
+
+
+def test_IssuesColumn():
+    project = FakeProject(
+        unlabeled_open_issues_count=1,
+        open_issues_count=3,
+        issues_url='/issues',
+    )
+    column = IssuesColumn()
+    assert column.get_url(project) == '/issues'
+    assert column.get_counts(project) == (1, 3)
+
+
+def test_PullsColumn():
+    project = FakeProject(
+        unlabeled_open_pulls_count=1,
+        open_pulls_count=3,
+        pulls_url='/pulls',
+    )
+    column = PullsColumn()
+    assert column.get_url(project) == '/pulls'
+    assert column.get_counts(project) == (1, 3)
