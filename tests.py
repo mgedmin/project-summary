@@ -19,6 +19,7 @@ from summary import (
     Pages,
     StatusColumn,
     Template,
+    TravisColumn,
     VersionColumn,
     format_cmd,
     get_project_name,
@@ -658,3 +659,13 @@ def test_StatusColumn_get_status_is_an_abstract_method():
     column = StatusColumn()
     with pytest.raises(NotImplementedError):
         column.get_status(project)
+
+
+def test_TravisColumn_get_status():
+    project = FakeProject(
+        travis_url='/status',
+        travis_image_url='/status.svg',
+        travis_status='unknown',
+    )
+    column = TravisColumn()
+    assert column.get_status(project) == ('/status', '/status.svg', 'unknown')
