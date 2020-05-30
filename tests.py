@@ -12,6 +12,7 @@ from summary import (
     DateColumn,
     IssuesColumn,
     JenkinsJobConfig,
+    NameColumn,
     Page,
     Pages,
     StatusColumn,
@@ -514,7 +515,8 @@ def test_Column_th_title():
 
 
 class FakeProject:
-    pass
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
 
 
 def test_Column_td():
@@ -556,3 +558,25 @@ def test_Column_inner_html_is_abstract_method():
     column = Column()
     with pytest.raises(NotImplementedError):
         column.inner_html(project)
+
+
+def test_NameColumn():
+    project = FakeProject(
+        name='Project', url='https://example.com', branch='master',
+    )
+    column = NameColumn()
+    assert column.inner_html(project) == (
+        '<a href="https://example.com">Project</a>'
+    )
+    assert isinstance(column.inner_html(project), markupsafe.Markup)
+
+
+def test_NameColumn_branch():
+    project = FakeProject(
+        name='Project', url='https://example.com', branch='0.9.x',
+    )
+    column = NameColumn()
+    assert column.inner_html(project) == (
+        '<a href="https://example.com">Project</a> 0.9.x'
+    )
+    assert isinstance(column.inner_html(project), markupsafe.Markup)
