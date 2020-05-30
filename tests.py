@@ -21,6 +21,7 @@ from summary import (
     Page,
     Pages,
     PullsColumn,
+    PythonSupportColumn,
     StatusColumn,
     Template,
     TravisColumn,
@@ -776,3 +777,34 @@ def test_PullsColumn():
     column = PullsColumn()
     assert column.get_url(project) == '/pulls'
     assert column.get_counts(project) == (1, 3)
+
+
+def test_PythonSupportColumn():
+    column = PythonSupportColumn('3.6')
+    assert column.title_narrow == 'Python 3.6'
+    assert column.title_tooltip == 'Supported until 2021-12-23'
+
+
+def test_PythonSupportColumn_PyPy():
+    column = PythonSupportColumn('PyPy')
+    assert column.title_narrow == 'PyPy'
+    assert column.title_tooltip is None
+
+
+def test_PythonSupportColumn_yes():
+    project = FakeProject(
+        python_versions={'3.6', '3.7'},
+    )
+    column = PythonSupportColumn('3.6')
+    assert isinstance(column.inner_html(project), markupsafe.Markup)
+
+
+def test_PythonSupportColumn_no():
+    project = FakeProject(
+        python_versions={'3.6', '3.7'},
+    )
+    column = PythonSupportColumn('3.5')
+    assert column.inner_html(project) == (
+        '<span class="no">\u2212</span>'
+    )
+    assert isinstance(column.inner_html(project), markupsafe.Markup)
