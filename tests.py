@@ -321,27 +321,6 @@ def test_Column_stylesheet_narrow_discrim():
     '''.rstrip(' ')
 
 
-def test_DataColumn_stylesheet():
-    col = DataColumn(css_class='bork')
-    page = Page('foo', [col])
-    assert col.stylesheet_rules(page) == ['''\
-      #foo span.new { font-weight: bold; }
-      #foo span.none { color: #999; }
-    '''.rstrip(' ')]
-
-
-def test_DataColumn_stylesheet_with_alignment():
-    col = DataColumn(css_class='bork', align='right')
-    page = Page('foo', [col])
-    assert col.stylesheet_rules(page) == ['''\
-      #foo th.bork,
-      #foo td.bork { text-align: right; }
-    '''.rstrip(' '), '''\
-      #foo span.new { font-weight: bold; }
-      #foo span.none { color: #999; }
-    '''.rstrip(' ')]
-
-
 def test_StatusColumn_stylesheet_last():
     pages = Pages([Page('foo', [
         StatusColumn(css_class='bork'),
@@ -710,3 +689,67 @@ def test_CoverallsColumn():
     column = CoverallsColumn()
     assert column.get_status(project) == ('/coverage', '/coverage.svg', '90%')
     assert column.get_data(project) == dict(coverage='90')
+
+
+def test_DataColumn_stylesheet():
+    col = DataColumn(css_class='bork')
+    page = Page('foo', [col])
+    assert col.stylesheet_rules(page) == ['''\
+      #foo span.new { font-weight: bold; }
+      #foo span.none { color: #999; }
+    '''.rstrip(' ')]
+
+
+def test_DataColumn_stylesheet_with_alignment():
+    col = DataColumn(css_class='bork', align='right')
+    page = Page('foo', [col])
+    assert col.stylesheet_rules(page) == ['''\
+      #foo th.bork,
+      #foo td.bork { text-align: right; }
+    '''.rstrip(' '), '''\
+      #foo span.new { font-weight: bold; }
+      #foo span.none { color: #999; }
+    '''.rstrip(' ')]
+
+
+def test_DataColumn_get_data():
+    project = FakeProject()
+    column = DataColumn()
+    column.get_counts = lambda project: (1, 3)
+    assert column.get_data(project) == dict(new=1, total=3)
+
+
+def test_DataColumn_inner_html():
+    project = FakeProject()
+    column = DataColumn()
+    column.get_counts = lambda project: (1, 3)
+    column.get_url = lambda project: '/bugs'
+    assert column.inner_html(project) == (
+        '<a href="/bugs" title="1 new, 3 total"><span class="new">1</span> (3)</a>'
+    )
+
+
+def test_DataColumn_inner_html_no_bugs_at_all():
+    project = FakeProject()
+    column = DataColumn()
+    column.get_counts = lambda project: (0, 0)
+    column.get_url = lambda project: '/bugs'
+    assert column.inner_html(project) == (
+        '<a href="/bugs" title="0 new, 0 total">'
+        '<span class="none">0</span> <span class="none">(0)</span>'
+        '</a>'
+    )
+
+
+def test_DataColumn_get_counts_is_an_abstract_method():
+    project = FakeProject()
+    column = DataColumn()
+    with pytest.raises(NotImplementedError):
+        column.get_counts(project)
+
+
+def test_DataColumn_get_url_is_an_abstract_method():
+    project = FakeProject()
+    column = DataColumn()
+    with pytest.raises(NotImplementedError):
+        column.get_url(project)

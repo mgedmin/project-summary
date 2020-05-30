@@ -1033,6 +1033,8 @@ class CoverallsColumn(StatusColumn):
 
 
 class DataColumn(Column):
+    # This is a bad class name.  TwoCountsColumn?  NewAndTotalColumn?
+
     css_rules = Column.css_rules + CSS('''
       #${page.name} span.new { font-weight: bold; }
       #${page.name} span.none { color: #999; }
@@ -1056,6 +1058,9 @@ class DataColumn(Column):
             new=new,
             total=total,
         )
+
+    def get_url(self, project):
+        raise NotImplementedError
 
     def get_counts(self, project):
         raise NotImplementedError
