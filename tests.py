@@ -21,6 +21,7 @@ from summary import (
     Page,
     Pages,
     PullsColumn,
+    PypiStatsColumn,
     PythonSupportColumn,
     StatusColumn,
     Template,
@@ -806,5 +807,17 @@ def test_PythonSupportColumn_no():
     column = PythonSupportColumn('3.5')
     assert column.inner_html(project) == (
         '<span class="no">\u2212</span>'
+    )
+    assert isinstance(column.inner_html(project), markupsafe.Markup)
+
+
+def test_PypiStatsColumn():
+    project = FakeProject(
+        pypistats_url='/stats',
+        downloads=12345,
+    )
+    column = PypiStatsColumn()
+    assert column.inner_html(project) == (
+        '<a href="/stats">12,345</a>'
     )
     assert isinstance(column.inner_html(project), markupsafe.Markup)
