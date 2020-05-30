@@ -632,3 +632,29 @@ def test_ChangesColumn_more_commits():
         '<a href="https://example.com/diff/v0.9.42..">2 commits</a>'
     )
     assert isinstance(column.inner_html(project), markupsafe.Markup)
+
+
+def test_StatusColumn():
+    project = FakeProject()
+    column = StatusColumn()
+    column.get_status = lambda project: ('/status', '/status.svg', 'unknown')
+    assert column.inner_html(project) == (
+        '<a href="/status"><img src="/status.svg" alt="unknown" height="20"></a>'
+    )
+    assert isinstance(column.inner_html(project), markupsafe.Markup)
+
+
+def test_StatusColumn_not_available():
+    project = FakeProject()
+    column = StatusColumn()
+    column.get_status = lambda project: (None, None, None)
+    assert column.inner_html(project) == (
+        '-'
+    )
+
+
+def test_StatusColumn_get_status_is_an_abstract_method():
+    project = FakeProject()
+    column = StatusColumn()
+    with pytest.raises(NotImplementedError):
+        column.get_status(project)
