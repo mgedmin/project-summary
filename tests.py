@@ -7,6 +7,7 @@ import pytest
 import summary
 from summary import (
     CSS,
+    ChangesColumn,
     Column,
     Configuration,
     DataColumn,
@@ -604,3 +605,30 @@ def test_DateColumn(monkeypatch):
     assert column.td(project) == (
         '<td class="date" title="2020-05-30 11:15:25 +0300">last Tuesday</td>'
     )
+
+
+def test_ChangesColumn():
+    project = FakeProject(
+        pending_commits=['Post-release version bump'],
+        compare_url='https://example.com/diff/v0.9.42..',
+    )
+    column = ChangesColumn()
+    assert column.inner_html(project) == (
+        '<a href="https://example.com/diff/v0.9.42..">1 commit</a>'
+    )
+    assert isinstance(column.inner_html(project), markupsafe.Markup)
+
+
+def test_ChangesColumn_more_commits():
+    project = FakeProject(
+        pending_commits=[
+            'Post-release version bump',
+            'Fix CI',
+        ],
+        compare_url='https://example.com/diff/v0.9.42..',
+    )
+    column = ChangesColumn()
+    assert column.inner_html(project) == (
+        '<a href="https://example.com/diff/v0.9.42..">2 commits</a>'
+    )
+    assert isinstance(column.inner_html(project), markupsafe.Markup)
