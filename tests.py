@@ -1,4 +1,5 @@
 import subprocess
+import sys
 import textwrap
 
 import markupsafe
@@ -35,6 +36,7 @@ from summary import (
     nice_date,
     normalize_github_url,
     pipe,
+    pluralize,
     reify,
     to_seconds,
 )
@@ -254,10 +256,6 @@ def test_get_project_owner():
 def test_get_project_name():
     result = get_project_name('https://github.com/mgedmin/project-summary')
     assert result == 'project-summary'
-
-
-def test_nice_date():
-    nice_date("2019-06-06 17:43:14 +0300")  # should not raise
 
 
 def test_html():
@@ -832,3 +830,18 @@ def test_get_report_pages():
         'Maintenance',
         'Python versions',
     ]
+
+
+def test_nice_date():
+    nice_date("2019-06-06 17:43:14 +0300")  # should not raise
+
+
+def test_pluralize():
+    assert pluralize(1, 'issues') == '1 issue'
+    assert pluralize(2, 'issues') == '2 issues'
+
+
+def test_main_help(monkeypatch):
+    monkeypatch.setattr(sys, 'argv', ['summary', '--help'])
+    with pytest.raises(SystemExit):
+        summary.main()
