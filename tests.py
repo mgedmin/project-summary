@@ -11,6 +11,7 @@ from summary import (
     ChangesColumn,
     Column,
     Configuration,
+    CoverallsColumn,
     DataColumn,
     DateColumn,
     IssuesColumn,
@@ -698,3 +699,14 @@ def test_AppveyorColumn():
     )
     column = AppveyorColumn()
     assert column.get_status(project) == ('/status', '/status.svg', 'unknown')
+
+
+def test_CoverallsColumn():
+    project = FakeProject(
+        coveralls_url='/coverage',
+        coveralls_image_url='/coverage.svg',
+        coverage=lambda fmt='{}', unknown='?': fmt.format(90),
+    )
+    column = CoverallsColumn()
+    assert column.get_status(project) == ('/coverage', '/coverage.svg', '90%')
+    assert column.get_data(project) == dict(coverage='90')
