@@ -8,6 +8,8 @@ from summary import (
     Column,
     Configuration,
     DataColumn,
+    DateColumn,
+    IssuesColumn,
     JenkinsJobConfig,
     Page,
     Pages,
@@ -342,6 +344,13 @@ def test_StatusColumn_stylesheet_last():
     '''.rstrip(' ')
 
 
+def test_Pages_iteration():
+    foo = Page('foo', [])
+    bar = Page('bar', [])
+    pages = Pages([foo, bar])
+    assert list(pages) == [foo, bar]
+
+
 def test_Pages_stylesheet():
     pages = Pages([
         Page('foo', [
@@ -360,3 +369,63 @@ def test_Pages_stylesheet():
       #bar th.bork,
       #bar td.bork { text-align: right; }
     '''.rstrip(' ')
+    assert isinstance(pages.stylesheet(), markupsafe.Markup)
+
+
+def test_Page_js_text_extractors_empty():
+    page = Page('foo', [])
+    assert page.js_text_extractors() == ''
+
+
+def test_Page_js_text_extractors():
+    page = Page('foo', [
+        DateColumn(),
+        Column(),
+        IssuesColumn(),
+    ])
+    assert page.js_text_extractors() == '''
+            0: sortTitleAttribute,  // ISO-8601 date in title
+            2: sortIssues           // issue counts in data attributes
+    '''.strip()
+
+
+def test_Page_js_render_header_empty():
+    page = Page('foo', [])
+    assert page.js_render_header() == ''
+
+
+def test_Page_js_render_header_disjoint_set():
+    page = Page('foo', [
+        Column(),
+        Column(align='right'),
+        Column(),
+        Column(align='right'),
+    ])
+    assert page.js_render_header() == '''
+          onRenderHeader: function(idx, config, table) {
+            // move the sort indicator to the left for right-aligned columns
+            if (idx == 1 || idx == 3) {
+              var $this = $(this);
+              $this.find('div').prepend($this.find('i'));
+            }
+          },
+    '''.lstrip('\n').rstrip(' ')
+
+
+def test_Page_js_render_header_last_n_columns():
+    page = Page('foo', [
+        Column(),
+        Column(),
+        Column(align='right'),
+        Column(align='right'),
+    ])
+    assert page.js_render_header() == '''
+          onRenderHeader: function(idx, config, table) {
+            // move the sort indicator to the left for right-aligned columns
+            if (idx >= 2) {
+              var $this = $(this);
+              $this.find('div').prepend($this.find('i'));
+            }
+          },
+    '''.lstrip('\n').rstrip(' ')
+    assert isinstance(page.js_render_header(), markupsafe.Markup)
