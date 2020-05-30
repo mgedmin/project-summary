@@ -866,6 +866,9 @@ class Column:
             discrim = f":nth-child({page.columns.index(self) + 1})"
         else:
             discrim = f".{self.css_class}"
+        # XXX: is it a good idea to put 'n' in default_filters here?
+        # what would break if I removed it?  I should do that once I have 100%
+        # test coverage.
         return [
             markupsafe.Markup(css)
             for css in [

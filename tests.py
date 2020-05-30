@@ -5,6 +5,7 @@ import markupsafe
 import pytest
 
 from summary import (
+    CSS,
     Column,
     Configuration,
     DataColumn,
@@ -429,3 +430,129 @@ def test_Page_js_render_header_last_n_columns():
           },
     '''.lstrip('\n').rstrip(' ')
     assert isinstance(page.js_render_header(), markupsafe.Markup)
+
+
+def test_Column_js_text_extractor_no_sort_rule():
+    column = Column()
+    assert column.js_text_extractor(3, True) == ''
+
+
+def test_Column_stylesheet_rules_empty():
+    column = Column()
+    page = Page('foo', [column])
+    column.css_rules_test = None
+    assert column.stylesheet_rules(page, 'test') == []
+
+
+def test_Column_stylesheet_rules_no_class():
+    column = Column()
+    page = Page('foo', [column])
+    column.css_rules_test = CSS('td${discrim} { color: red; }')
+    assert column.stylesheet_rules(page, 'test') == [
+        'td:nth-child(1) { color: red; }',
+    ]
+
+
+def test_Column_stylesheet_rules_class():
+    column = Column(css_class='foo')
+    page = Page('foo', [column])
+    column.css_rules_test = CSS('td${discrim} { color: red; }')
+    assert column.stylesheet_rules(page, 'test') == [
+        'td.foo { color: red; }',
+    ]
+
+
+def test_Column_stylesheet_rules_class_clash():
+    column = Column(css_class='foo')
+    page = Page('foo', [column, Column(css_class='foo')])
+    column.css_rules_test = CSS('td${discrim} { color: red; }')
+    assert column.stylesheet_rules(page, 'test') == [
+        'td:nth-child(1) { color: red; }',
+    ]
+
+
+def test_Column_stylesheet_rules_markup():
+    column = Column('<hey>', css_class='foo')
+    page = Page('foo', [column])
+    column.css_rules_test = CSS('td${discrim}:before { content: "${column.title|h}"; }')
+    rules = column.stylesheet_rules(page, 'test')
+    assert rules == [
+        'td.foo:before { content: "&lt;hey&gt;"; }',
+    ]
+    assert isinstance(rules[0], markupsafe.Markup)
+
+
+def test_Column_col():
+    column = Column()
+    assert column.col() == '<col>'
+    assert isinstance(column.col(), markupsafe.Markup)
+
+
+def test_Column_col_with_width():
+    column = Column(width='50%')
+    assert column.col() == '<col width="50%">'
+    assert isinstance(column.col(), markupsafe.Markup)
+
+
+def test_Column_th():
+    column = Column('A > B')
+    assert column.th() == '<th>A &gt; B</th>'
+    assert isinstance(column.th(), markupsafe.Markup)
+
+
+def test_Column_th_class():
+    column = Column('A', css_class='foo')
+    assert column.th() == '<th class="foo">A</th>'
+    assert isinstance(column.th(), markupsafe.Markup)
+
+
+def test_Column_th_title():
+    column = Column('A')
+    column.title_tooltip = 'xy > zzy'
+    assert column.th() == '<th title="xy &gt; zzy">A</th>'
+    assert isinstance(column.th(), markupsafe.Markup)
+
+
+class FakeProject:
+    pass
+
+
+def test_Column_td():
+    project = FakeProject()
+    column = Column()
+    column.inner_html = lambda project: '-'
+    assert column.td(project) == '<td>-</td>'
+    assert isinstance(column.td(project), markupsafe.Markup)
+
+
+def test_Column_td_class():
+    project = FakeProject()
+    column = Column(css_class='foo')
+    column.inner_html = lambda project: '-'
+    assert column.td(project) == '<td class="foo">-</td>'
+    assert isinstance(column.td(project), markupsafe.Markup)
+
+
+def test_Column_td_tooltip():
+    project = FakeProject()
+    column = Column()
+    column.inner_html = lambda project: '-'
+    column.tooltip = lambda project: 'hey > ho'
+    assert column.td(project) == '<td title="hey &gt; ho">-</td>'
+    assert isinstance(column.td(project), markupsafe.Markup)
+
+
+def test_Column_td_data():
+    project = FakeProject()
+    column = Column()
+    column.inner_html = lambda project: '-'
+    column.get_data = lambda project: {'hey': '> ho'}
+    assert column.td(project) == '<td data-hey="&gt; ho">-</td>'
+    assert isinstance(column.td(project), markupsafe.Markup)
+
+
+def test_Column_inner_html_is_abstract_method():
+    project = FakeProject()
+    column = Column()
+    with pytest.raises(NotImplementedError):
+        column.inner_html(project)
