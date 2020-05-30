@@ -13,6 +13,7 @@ from summary import (
     DataColumn,
     DateColumn,
     IssuesColumn,
+    JenkinsColumn,
     JenkinsJobConfig,
     NameColumn,
     Page,
@@ -669,3 +670,20 @@ def test_TravisColumn_get_status():
     )
     column = TravisColumn()
     assert column.get_status(project) == ('/status', '/status.svg', 'unknown')
+
+
+def test_JenkinsColumn():
+    project = FakeProject(
+        get_jenkins_url=lambda job: '/status',
+        get_jenkins_image_url=lambda job: '/status.svg',
+        get_jenkins_status=lambda job: 'unknown',
+    )
+    column = JenkinsColumn(JenkinsJobConfig())
+    # Multiple spaces are ugly but HTML collapses them into one space, so I don't really care
+    assert ' '.join(column.title_narrow.split()) == 'Jenkins status'
+    assert column.get_status(project) == ('/status', '/status.svg', 'unknown')
+
+
+def test_JenkinsColumn_with_title():
+    column = JenkinsColumn(JenkinsJobConfig('{name}', 'Linux'))
+    assert column.title_narrow == 'Jenkins Linux status'
