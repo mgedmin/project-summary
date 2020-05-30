@@ -4,6 +4,7 @@ import textwrap
 import markupsafe
 import pytest
 
+import summary
 from summary import (
     CSS,
     Column,
@@ -17,6 +18,7 @@ from summary import (
     Pages,
     StatusColumn,
     Template,
+    VersionColumn,
     format_cmd,
     get_project_name,
     get_project_owner,
@@ -580,3 +582,25 @@ def test_NameColumn_branch():
         '<a href="https://example.com">Project</a> 0.9.x'
     )
     assert isinstance(column.inner_html(project), markupsafe.Markup)
+
+
+def test_VersionColumn(monkeypatch):
+    project = FakeProject(
+        last_tag='v0.9.42', pypi_url='https://example.com/pypi/project',
+    )
+    column = VersionColumn()
+    assert column.inner_html(project) == (
+        '<a href="https://example.com/pypi/project">v0.9.42</a>'
+    )
+    assert isinstance(column.inner_html(project), markupsafe.Markup)
+
+
+def test_DateColumn(monkeypatch):
+    monkeypatch.setattr(summary, 'nice_date', lambda d: 'last Tuesday')
+    project = FakeProject(
+        last_tag_date='2020-05-30 11:15:25 +0300',
+    )
+    column = DateColumn()
+    assert column.td(project) == (
+        '<td class="date" title="2020-05-30 11:15:25 +0300">last Tuesday</td>'
+    )
