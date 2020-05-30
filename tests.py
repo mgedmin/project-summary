@@ -30,6 +30,7 @@ from summary import (
     format_cmd,
     get_project_name,
     get_project_owner,
+    get_report_pages,
     html,
     nice_date,
     normalize_github_url,
@@ -821,3 +822,13 @@ def test_PypiStatsColumn():
         '<a href="/stats">12,345</a>'
     )
     assert isinstance(column.inner_html(project), markupsafe.Markup)
+
+
+def test_get_report_pages():
+    config = Configuration('/dev/null')
+    pages = get_report_pages(config)
+    assert [page.title for page in pages] == [
+        'Release status',
+        'Maintenance',
+        'Python versions',
+    ]
