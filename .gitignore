@@ -14,3 +14,4 @@ pip-selfcheck.json
 .tox/
 package-lock.json
 .coverage
+index.html
