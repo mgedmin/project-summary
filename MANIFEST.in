@@ -1,0 +1,16 @@
+include *.json
+include *.py
+include *.rst
+include .coveragerc
+include Makefile
+include project-summary.cfg
+include pytest.ini
+include tox.ini
+recursive-include assets *.css
+recursive-include assets *.eot
+recursive-include assets *.js
+recursive-include assets *.map
+recursive-include assets *.svg
+recursive-include assets *.ttf
+recursive-include assets *.woff
+recursive-include assets *.woff2
