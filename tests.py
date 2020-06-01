@@ -718,7 +718,7 @@ def test_DataColumn_get_data():
     project = FakeProject()
     column = DataColumn()
     column.get_counts = lambda project: (1, 3)
-    assert column.get_data(project) == dict(new=1, total=3)
+    assert column.get_data(project) == dict(new='1', total='3')
 
 
 def test_DataColumn_inner_html():

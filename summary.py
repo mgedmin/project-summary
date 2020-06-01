@@ -18,8 +18,24 @@ import subprocess
 import sys
 import time
 import traceback
-from collections import namedtuple
 from configparser import ConfigParser
+from typing import (
+    Any,
+    Callable,
+    Collection,
+    Dict,
+    Generic,
+    Iterable,
+    Iterator,
+    List,
+    NamedTuple,
+    Optional,
+    Sequence,
+    TextIO,
+    Tuple,
+    TypeVar,
+    Union,
+)
 
 import arrow
 import mako.exceptions
@@ -40,28 +56,31 @@ log = logging.getLogger('project-summary')
 # Utilities
 #
 
-class reify(object):
-    def __init__(self, fn):
+T = TypeVar('T')
+
+
+class reify(Generic[T]):
+    def __init__(self, fn: Callable[[Any], T]) -> None:
         self.fn = fn
 
-    def __get__(self, obj, cls=None):
+    def __get__(self, obj, cls=None) -> T:
         value = self.fn(obj)
         obj.__dict__[self.fn.__name__] = value
         return value
 
 
-def collect(fn):
+def collect(fn: Callable[..., Iterable[T]]) -> Callable[..., List[T]]:
     return functools.wraps(fn)(lambda *a, **kw: list(fn(*a, **kw)))
 
 
-def format_cmd(cmd, cwd=None):
+def format_cmd(cmd: Sequence[str], cwd: Optional[str] = None) -> str:
     if cwd:
         return 'cd %s && %s' % (cwd, ' '.join(cmd))
     else:
         return ' '.join(cmd)
 
 
-def pipe(*cmd, **kwargs):
+def pipe(*cmd: str, **kwargs) -> str:
     ignore_errors = kwargs.pop('ignore_errors', False)
     log.debug('EXEC %s', format_cmd(cmd, kwargs.get('cwd')))
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, **kwargs)
@@ -78,7 +97,7 @@ def pipe(*cmd, **kwargs):
     return stdout.decode('UTF-8', 'replace')
 
 
-def to_seconds(value):
+def to_seconds(value: str) -> int:
     units = {
         1: ('s', 'sec', 'second', 'seconds'),
         60: ('m', 'min', 'minute', 'minutes'),
@@ -100,8 +119,9 @@ def to_seconds(value):
 # Configuration
 #
 
-JenkinsJobConfig = namedtuple('JenkinsJobConfig', 'name_template title')
-JenkinsJobConfig.__new__.__defaults__ = ('{name}', '')
+class JenkinsJobConfig(NamedTuple):
+    name_template: str = '{name}'
+    title: str = ''
 
 
 class Configuration(object):
@@ -120,43 +140,44 @@ class Configuration(object):
         pypi-name-map =
     '''.replace('\n        ', '\n').strip()
 
-    def __init__(self, filename='project-summary.cfg'):
+    def __init__(self, filename: str = 'project-summary.cfg') -> None:
         cp = ConfigParser()
-        cp.optionxform = lambda s: s.lower().replace('_', '-')
+        # https://github.com/python/mypy/issues/5062
+        cp.optionxform = lambda s: s.lower().replace('_', '-')  # type: ignore
         cp.read_string(self._defaults, '<defaults>')
         cp.read([filename])
         self._config = cp
 
     @reify
-    def projects(self):
+    def projects(self) -> List[str]:
         return self._config.get('project-summary', 'projects').split()
 
     @reify
-    def ignore(self):
+    def ignore(self) -> List[str]:
         return self._config.get('project-summary', 'ignore').split()
 
     @reify
-    def skip_branches(self):
+    def skip_branches(self) -> bool:
         return self._config.getboolean('project-summary', 'skip-branches')
 
     @reify
-    def fetch(self):
+    def fetch(self) -> bool:
         return self._config.getboolean('project-summary', 'fetch')
 
     @reify
-    def pull(self):
+    def pull(self) -> bool:
         return self._config.getboolean('project-summary', 'pull')
 
     @reify
-    def appveyor_account(self):
+    def appveyor_account(self) -> str:
         return self._config.get('project-summary', 'appveyor-account')
 
     @reify
-    def jenkins_url(self):
+    def jenkins_url(self) -> str:
         return self._config.get('project-summary', 'jenkins-url').rstrip('/')
 
     @reify
-    def jenkins_jobs(self):
+    def jenkins_jobs(self) -> List[JenkinsJobConfig]:
         return [
             JenkinsJobConfig(*job.split(None, 1))
             for job in self._config.get('project-summary', 'jenkins-jobs').splitlines()
@@ -164,14 +185,14 @@ class Configuration(object):
         ] if self.jenkins_url else []
 
     @reify
-    def footer(self):
+    def footer(self) -> markupsafe.Markup:
         return markupsafe.Markup(
             self._config.get('project-summary', 'footer')
             .replace('{last_update}', arrow.now().format())
         )
 
     @reify
-    def pypi_name_map(self):
+    def pypi_name_map(self) -> Dict[str, str]:
         pypi_name_map = {}
         for line in self._config.get('project-summary', 'pypi-name-map').splitlines():
             k, _, v = line.partition(':')
@@ -194,7 +215,10 @@ class GitHubRateLimitError(GitHubError):
     pass
 
 
-def is_cached(url, session):
+# session should be type-annotated to be requests.Session, but!  then mypy
+# complains about session.cache being an undefined attribute, which is fair,
+# it's monkey-patched in place by requests_session...
+def is_cached(url: str, session) -> bool:
     if not hasattr(session, 'cache'):
         return False
     if not session.cache.has_url(url):
@@ -216,14 +240,14 @@ def is_cached(url, session):
     return not is_expired
 
 
-def log_url(url, session):
+def log_url(url: str, session: requests.Session) -> None:
     if is_cached(url, session):
         log.debug('HIT %s', url)
     else:
         log.debug('GET %s', url)
 
 
-def github_request(url, session):
+def github_request(url: str, session: requests.Session) -> requests.Response:
     log_url(url, session)
     res = session.get(url)
     if res.status_code == 403 and res.headers.get('X-RateLimit-Remaining') == '0':
@@ -245,7 +269,7 @@ def github_request(url, session):
     return res
 
 
-def github_request_list(url, session, batch_size=100):
+def github_request_list(url: str, session: requests.Session, batch_size: int = 100) -> List[Dict]:
     res = github_request('%s?per_page=%d' % (url, batch_size), session)
     result = res.json()
     assert isinstance(result, list), result
@@ -266,7 +290,7 @@ def github_request_list(url, session, batch_size=100):
 # Data extraction
 #
 
-def get_repos(config):
+def get_repos(config: Configuration) -> List[str]:
     return sorted(
         dirname
         for path in config.projects
@@ -275,14 +299,14 @@ def get_repos(config):
     )
 
 
-def get_repo_url(repo_path):
+def get_repo_url(repo_path: str) -> Optional[str]:
     try:
         return pipe("git", "ls-remote", "--get-url", "origin", cwd=repo_path).strip()
     except IndexError:
         return None
 
 
-def normalize_github_url(url):
+def normalize_github_url(url: Optional[str]) -> Optional[str]:
     if not url:
         return url
     if url.startswith('git://github.com/'):
@@ -296,15 +320,15 @@ def normalize_github_url(url):
     return url
 
 
-def get_project_owner(url):
+def get_project_owner(url: str) -> str:
     return url.rpartition('/')[0].rpartition('/')[-1]
 
 
-def get_project_name(url):
+def get_project_name(url: str) -> str:
     return url.rpartition('/')[-1]
 
 
-def get_branch_name(repo_path):
+def get_branch_name(repo_path: str) -> str:
     name = pipe("git", "rev-parse", "--abbrev-ref", "HEAD",
                 cwd=repo_path, stderr=subprocess.PIPE).strip()
     if name != 'HEAD':
@@ -344,21 +368,21 @@ def get_branch_name(repo_path):
     return '(detached)'
 
 
-def get_last_tag(repo_path):
+def get_last_tag(repo_path: str) -> str:
     return pipe("git", "describe", "--tags", "--abbrev=0",
                 cwd=repo_path, stderr=subprocess.PIPE, ignore_errors=True).strip()
 
 
-def get_date_of_tag(repo_path, tag):
+def get_date_of_tag(repo_path: str, tag: str) -> str:
     return pipe("git", "log", "-1", "--format=%ai", tag, cwd=repo_path).strip()
 
 
-def get_pending_commits(repo_path, last_tag, branch='master'):
+def get_pending_commits(repo_path: str, last_tag: str, branch: str = 'master') -> List[str]:
     return pipe("git", "log", "--oneline", "{}..origin/{}".format(last_tag, branch),
                 cwd=repo_path).splitlines()
 
 
-def get_supported_python_versions(repo_path):
+def get_supported_python_versions(repo_path: str) -> List[str]:
     classifiers = pipe(sys.executable, "setup.py", "--classifiers",
                        cwd=repo_path, stderr=subprocess.PIPE).splitlines()
     prefix = 'Programming Language :: Python :: '
@@ -377,97 +401,100 @@ def get_supported_python_versions(repo_path):
 
 class Project:
 
-    def __init__(self, working_tree, config, session):
+    def __init__(self, working_tree: str, config: Configuration, session: requests.Session) -> None:
         self.working_tree = working_tree
         self.config = config
         self.session = session
 
-    def _http_get(self, url, **kwargs):
+    def _http_get(self, url: str, **kwargs) -> requests.Response:
         log_url(url, self.session)
         return self.session.get(url, **kwargs)
 
-    def fetch(self):
+    def fetch(self) -> None:
         pipe('git', 'fetch', '--prune', cwd=self.working_tree)
 
-    def pull(self):
+    def pull(self) -> None:
         pipe('git', 'pull', '--prune', cwd=self.working_tree)
 
-    def precompute(self, attrs):
+    def precompute(self, attrs: Sequence[str]) -> None:
         # trigger all the @reify decorators
         for attr in attrs:
             getattr(self, attr)
 
     @reify
-    def url(self):
+    def url(self) -> Optional[str]:
         return normalize_github_url(get_repo_url(self.working_tree))
 
     @reify
-    def is_on_github(self):
+    def is_on_github(self) -> bool:
+        if not self.url:
+            return False
         return self.url.startswith('https://github.com/')
 
     @reify
-    def uses_travis(self):
+    def uses_travis(self) -> bool:
         if not self.is_on_github:
             return False
         return os.path.exists(os.path.join(self.working_tree, '.travis.yml'))
 
     @reify
-    def uses_appveyor(self):
+    def uses_appveyor(self) -> bool:
         if not self.is_on_github or not self.config.appveyor_account:
             return False
         return os.path.exists(os.path.join(self.working_tree, 'appveyor.yml'))
 
     @property
-    def uses_jenkins(self):
+    def uses_jenkins(self) -> bool:
         return bool(self.config.jenkins_url)
 
     @reify
-    def branch(self):
+    def branch(self) -> str:
         return get_branch_name(self.working_tree)
 
     @reify
-    def last_tag(self):
+    def last_tag(self) -> str:
         return get_last_tag(self.working_tree)
 
     @reify
-    def last_tag_date(self):
+    def last_tag_date(self) -> str:
         return get_date_of_tag(self.working_tree, self.last_tag)
 
     @reify
-    def pending_commits(self):
+    def pending_commits(self) -> List[str]:
         return get_pending_commits(self.working_tree, self.last_tag, self.branch)
 
     @property
-    def owner(self):
+    def owner(self) -> Optional[str]:
         if self.is_on_github:
+            assert self.url is not None
             return get_project_owner(self.url)
         else:
             return None
 
     @property
-    def name(self):
+    def name(self) -> str:
         if self.url:
             return get_project_name(self.url)
         else:
             return os.path.basename(self.working_tree)
 
     @reify
-    def pypi_name(self):
+    def pypi_name(self) -> str:
         return self.config.pypi_name_map.get(self.name, self.name)
 
     @property
-    def pypi_url(self):
+    def pypi_url(self) -> str:
         return 'https://pypi.org/project/{name}/'.format(name=self.pypi_name)
 
     @property
-    def jenkins_job(self):
+    def jenkins_job(self) -> str:
         if os.path.basename(self.working_tree) == 'workspace':
             return os.path.basename(os.path.dirname(self.working_tree))
         else:
             return os.path.basename(self.working_tree)
 
     @property
-    def compare_url(self):
+    def compare_url(self) -> Optional[str]:
         if not self.is_on_github:
             return None
         return '{base}/compare/{tag}...{branch}'.format(base=self.url,
@@ -475,7 +502,7 @@ class Project:
                                                         tag=self.last_tag)
 
     @property
-    def travis_image_url(self):
+    def travis_image_url(self) -> Optional[str]:
         if not self.uses_travis:
             return None
         # Travis has 20px-high SVG images in the new (flat) style
@@ -483,20 +510,21 @@ class Project:
         return template.format(name=self.name, owner=self.owner, branch=self.branch)
 
     @property
-    def travis_url(self):
+    def travis_url(self) -> Optional[str]:
         if not self.uses_travis:
             return None
         return 'https://travis-ci.org/{owner}/{name}'.format(name=self.name,
                                                              owner=self.owner)
 
     @reify
-    def travis_status(self):
+    def travis_status(self) -> Optional[str]:
         if not self.uses_travis:
             return None
+        assert self.travis_image_url is not None
         res = self._http_get(self.travis_image_url)
         return self._parse_svg_text(res.text, skip_words={'build'})
 
-    def _parse_svg_text(self, svg_text, skip_words=()):
+    def _parse_svg_text(self, svg_text: str, skip_words: Collection[str] = ()) -> str:
         # let's parse SVG with regexps, what could go wrong???
         text_rx = re.compile(r'<text([^>]*)>([^<]*)</text>')
         status = []
@@ -509,28 +537,29 @@ class Project:
         return ' '.join(status)
 
     @property
-    def appveyor_image_url(self):
+    def appveyor_image_url(self) -> Optional[str]:
         if not self.uses_appveyor:
             return None
         template = 'https://ci.appveyor.com/api/projects/status/github/{owner}/{name}?branch={branch}&svg=true'
         return template.format(name=self.name, owner=self.owner, branch=self.branch)
 
     @property
-    def appveyor_url(self):
+    def appveyor_url(self) -> Optional[str]:
         if not self.uses_appveyor:
             return None
         return 'https://ci.appveyor.com/project/{account}/{name}/branch/{branch}'.format(
             name=self.name, account=self.config.appveyor_account, branch=self.branch)
 
     @reify
-    def appveyor_status(self):
+    def appveyor_status(self) -> Optional[str]:
         if not self.uses_appveyor:
             return None
+        assert self.appveyor_image_url is not None
         res = self._http_get(self.appveyor_image_url)
         return self._parse_svg_text(res.text, skip_words={'build'})
 
     @property
-    def coveralls_image_url(self):
+    def coveralls_image_url(self) -> Optional[str]:
         if not self.uses_travis:
             return None
         # 18px-high PNG
@@ -542,14 +571,14 @@ class Project:
         return template.format(name=self.name, owner=self.owner, branch=self.branch)
 
     @property
-    def coveralls_url(self):
+    def coveralls_url(self) -> Optional[str]:
         if not self.uses_travis:
             return None
         return 'https://coveralls.io/r/{owner}/{name}?branch={branch}'.format(
             name=self.name, owner=self.owner, branch=self.branch)
 
     @reify
-    def coverage_number(self):
+    def coverage_number(self) -> Optional[int]:
         url = self.coveralls_image_url
         if not url:
             return None
@@ -565,13 +594,13 @@ class Project:
                 return int(coverage)
         return None
 
-    def coverage(self, format='{}', unknown='-1'):
+    def coverage(self, format: str = '{}', unknown: str = '-1') -> str:
         if self.coverage_number is None:
             return unknown
         else:
             return format.format(self.coverage_number)
 
-    def get_jenkins_image_url(self, job_config=JenkinsJobConfig()):
+    def get_jenkins_image_url(self, job_config: JenkinsJobConfig = JenkinsJobConfig()) -> Optional[str]:
         if not self.uses_jenkins:
             return None
         return '{base}/job/{name}/badge/icon'.format(
@@ -579,7 +608,7 @@ class Project:
             name=job_config.name_template.format(name=self.jenkins_job),
         )
 
-    def get_jenkins_url(self, job_config=JenkinsJobConfig()):
+    def get_jenkins_url(self, job_config: JenkinsJobConfig = JenkinsJobConfig()) -> Optional[str]:
         if not self.uses_jenkins:
             return None
         return '{base}/job/{name}/'.format(
@@ -587,19 +616,20 @@ class Project:
             name=job_config.name_template.format(name=self.jenkins_job),
         )
 
-    def get_jenkins_status(self, job_config=JenkinsJobConfig()):
+    def get_jenkins_status(self, job_config: JenkinsJobConfig = JenkinsJobConfig()) -> Optional[str]:
         if not self.uses_jenkins:
             return None
         url = self.get_jenkins_image_url(job_config)
+        assert url is not None
         res = self._http_get(url)
         return self._parse_svg_text(res.text, skip_words={'build'})
 
     @reify
-    def python_versions(self):
+    def python_versions(self) -> List[str]:
         return get_supported_python_versions(self.working_tree)
 
     @reify
-    def github_issues_and_pulls(self):
+    def github_issues_and_pulls(self) -> List[Dict]:
         if not self.is_on_github:
             return []
         url = 'https://api.github.com/repos/{owner}/{name}/issues'.format(
@@ -607,49 +637,49 @@ class Project:
         return github_request_list(url, self.session)
 
     @reify
-    def github_issues(self):
+    def github_issues(self) -> List[Dict]:
         return [issue for issue in self.github_issues_and_pulls
                 if 'pull_request' not in issue]
 
     @reify
-    def github_pulls(self):
+    def github_pulls(self) -> List[Dict]:
         return [issue for issue in self.github_issues_and_pulls
                 if 'pull_request' in issue]
 
     @reify
-    def open_issues_count(self):
+    def open_issues_count(self) -> int:
         return len(self.github_issues)
 
     @reify
-    def unlabeled_open_issues_count(self):
+    def unlabeled_open_issues_count(self) -> int:
         return sum(1 for issue in self.github_issues if not issue['labels'])
 
     @reify
-    def issues_url(self):
+    def issues_url(self) -> Optional[str]:
         if not self.is_on_github:
             return None
         return '{base}/issues'.format(base=self.url)
 
     @reify
-    def open_pulls_count(self):
+    def open_pulls_count(self) -> int:
         return len(self.github_pulls)
 
     @reify
-    def unlabeled_open_pulls_count(self):
+    def unlabeled_open_pulls_count(self) -> int:
         return sum(1 for issue in self.github_pulls if not issue['labels'])
 
     @reify
-    def pulls_url(self):
+    def pulls_url(self) -> Optional[str]:
         if not self.is_on_github:
             return None
         return '{base}/pulls'.format(base=self.url)
 
     @reify
-    def pypistats_url(self):
+    def pypistats_url(self) -> str:
         return f'https://pypistats.org/packages/{self.pypi_name}'
 
     @reify
-    def downloads(self):
+    def downloads(self) -> Optional[int]:
         try:
             data = json.loads(pypistats.recent(self.pypi_name, format='json'))
         except requests.HTTPError as e:
@@ -660,7 +690,7 @@ class Project:
 
 
 @collect
-def get_projects(config, session):
+def get_projects(config: Configuration, session: requests.Session) -> Iterable[Project]:
     for path in get_repos(config):
         p = Project(path, config, session)
         if p.name in config.ignore:
@@ -679,7 +709,10 @@ def get_projects(config, session):
 # Templating
 #
 
-def mako_error_handler(context, error):
+Markup = Union[str, markupsafe.Markup]
+
+
+def mako_error_handler(context, error) -> None:
     """Decorate tracebacks when Mako errors happen.
 
     Evil hack: walk the traceback frames, find compiled Mako templates,
@@ -690,7 +723,7 @@ def mako_error_handler(context, error):
     rich_tb = mako.exceptions.RichTraceback()
     rich_iter = iter(rich_tb.traceback)
     tb = sys.exc_info()[-1]
-    source = {}
+    source: Dict[str, List[str]] = {}
     annotated = set()
     while tb is not None:
         cur_rich = next(rich_iter)
@@ -703,7 +736,7 @@ def mako_error_handler(context, error):
             if lines is None:
                 info = mako.template._get_module_info(filename)
                 lines = source[filename] = info.module_source.splitlines(True)
-                linecache.cache[filename] = (None, None, lines, filename)
+                linecache.cache[filename] = (None, None, lines, filename)  # type: ignore
             if (filename, lineno) not in annotated:
                 annotated.add((filename, lineno))
                 extra = '    # {0} line {1} in {2}:\n    # {3}'.format(*cur_rich)
@@ -714,18 +747,20 @@ def mako_error_handler(context, error):
     raise
 
 
-def Template(*args, **kw):
+def Template(*args, **kw) -> mako.template.Template:
     kw.setdefault('default_filters', ['h'])
     return mako.template.Template(error_handler=mako_error_handler,
                                   strict_undefined=True,
                                   *args, **kw)
 
 
-def html(tag, body='', **attrs):
+def html(tag: Optional[str], body: Optional[str] = '', **kw: Optional[str]) -> markupsafe.Markup:
+    if body is None:
+        body = ''
     if not tag:
         return markupsafe.escape(body)
     attrs = ''.join(f''' {name.rstrip('_')}="{markupsafe.escape(value)}"'''
-                    for name, value in attrs.items() if value is not None)
+                    for name, value in kw.items() if value is not None)
     if tag in ('img', 'link', 'br', 'hr', 'meta', 'col'):
         assert not body
         return markupsafe.Markup(f'<{tag}%s>' % attrs)
@@ -750,13 +785,13 @@ PYTHON_EOL_DATE = {
 
 class Pages:
 
-    def __init__(self, pages):
+    def __init__(self, pages) -> None:
         self.pages = pages
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator['Page']:
         return iter(self.pages)
 
-    def stylesheet(self, variant=None):
+    def stylesheet(self, variant: Optional[str] = None) -> markupsafe.Markup:
         seen = set()
         styles = []
         for page in self.pages:
@@ -770,12 +805,12 @@ class Pages:
 
 class Page:
 
-    def __init__(self, title, columns):
+    def __init__(self, title: str, columns: List['Column']) -> None:
         self.title = title
         self.name = '-'.join(title.lower().split())
         self.columns = columns
 
-    def js_text_extractors(self):
+    def js_text_extractors(self) -> Markup:
         cols = [(idx, col) for idx, col in enumerate(self.columns)
                 if col.js_sort_rule]
         return '\n            '.join(
@@ -783,7 +818,7 @@ class Page:
             for idx, col in cols
         )
 
-    def js_render_header(self, comma=','):
+    def js_render_header(self, comma: str = ',') -> Markup:
         cols = [idx for idx, col in enumerate(self.columns)
                 if col.align == 'right']
         if not cols:
@@ -805,22 +840,22 @@ class Page:
         ''').format(expr=expr, comma=comma))
 
 
-def strip_leading_newline_and_trailing_spaces(rules):
+def strip_leading_newline_and_trailing_spaces(rules: str) -> str:
     return rules.lstrip('\n').rstrip(' ')
 
 
 JS = strip_leading_newline_and_trailing_spaces
 
 
-def CSS(rules):
+def CSS(rules: str) -> List[str]:
     return [strip_leading_newline_and_trailing_spaces(rules)]
 
 
 class Column:
-    title = None
-    title_tooltip = None
-    title_narrow = None
-    css_class = None
+    title: Optional[str] = None
+    title_tooltip: Optional[str] = None
+    title_narrow: Optional[str] = None
+    css_class: Optional[str] = None
     css_rules = CSS('''
     % if column.align:
       #${page.name} th.${css_class},
@@ -834,9 +869,16 @@ class Column:
         #${page.name} td${discrim} { text-align: left; }
     % endif
     ''')
-    js_sort_rule = None
+    js_sort_rule: Optional[Tuple[str, str]] = None
 
-    def __init__(self, title=None, *, css_class=None, width=None, align=None):
+    def __init__(
+        self,
+        title: Optional[str] = None,
+        *,
+        css_class: Optional[str] = None,
+        width: Optional[str] = None,
+        align: Optional[str] = None,
+    ) -> None:
         if title is not None:
             self.title = title
         if css_class is not None:
@@ -844,7 +886,7 @@ class Column:
         self.width = width
         self.align = align
 
-    def js_text_extractor(self, index, last):
+    def js_text_extractor(self, index: int, last: bool) -> Markup:
         if not self.js_sort_rule:
             return ''
         sorter, comment = self.js_sort_rule
@@ -852,7 +894,7 @@ class Column:
             sorter += ","
         return f'{index}: {sorter:<20} // {comment}'
 
-    def stylesheet_rules(self, page, variant=None):
+    def stylesheet_rules(self, page: Page, variant: Optional[str] = None) -> List[Markup]:
         if variant:
             rules = getattr(self, f'css_rules_{variant}')
         else:
@@ -882,26 +924,26 @@ class Column:
             ] if css
         ]
 
-    def col(self):
+    def col(self) -> markupsafe.Markup:
         return html('col', width=self.width)
 
-    def th(self):
+    def th(self) -> markupsafe.Markup:
         return html('th', self.title, class_=self.css_class,
                     title=self.title_tooltip)
 
-    def td(self, project):
+    def td(self, project: Project) -> markupsafe.Markup:
         return html('td', self.inner_html(project), class_=self.css_class,
                     title=self.tooltip(project),
                     **{f'data-{item}': value
                        for item, value in self.get_data(project).items()})
 
-    def tooltip(self, project):
+    def tooltip(self, project: Project) -> Optional[str]:
         return None
 
-    def get_data(self, project):
+    def get_data(self, project: Project) -> Dict[str, str]:
         return {}
 
-    def inner_html(self, project):
+    def inner_html(self, project: Project) -> Markup:
         raise NotImplementedError
 
 
@@ -914,7 +956,7 @@ class NameColumn(Column):
     % endif
     ''')
 
-    def inner_html(self, project):
+    def inner_html(self, project: Project) -> Markup:
         return html('a', project.name, href=project.url) + (
             f' {project.branch}' if project.branch != 'master' else ''
         )
@@ -924,7 +966,7 @@ class VersionColumn(Column):
     title = 'Last release'
     css_class = 'version'
 
-    def inner_html(self, project):
+    def inner_html(self, project: Project) -> Markup:
         return html('a', project.last_tag, href=project.pypi_url)
 
 
@@ -933,10 +975,10 @@ class DateColumn(Column):
     css_class = 'date'
     js_sort_rule = ('sortTitleAttribute', 'ISO-8601 date in title')
 
-    def tooltip(self, project):
+    def tooltip(self, project: Project) -> str:
         return project.last_tag_date
 
-    def inner_html(self, project):
+    def inner_html(self, project: Project) -> Markup:
         return nice_date(project.last_tag_date)
 
 
@@ -944,9 +986,15 @@ class ChangesColumn(Column):
     title = 'Pending changes'
     css_class = 'changes'
 
-    def inner_html(self, project):
+    def inner_html(self, project: Project) -> Markup:
         return html('a', pluralize(len(project.pending_commits), 'commits'),
                     href=project.compare_url)
+
+
+class StatusTuple(NamedTuple):
+    url: Optional[str]
+    image_url: Optional[str]
+    status: Optional[str]
 
 
 class StatusColumn(Column):
@@ -959,17 +1007,17 @@ class StatusColumn(Column):
     ''')
     js_sort_rule = ('sortAltText', 'build status in alt text')
 
-    def inner_html(self, project):
+    def inner_html(self, project: Project) -> Markup:
         url, image_url, status = self.get_status(project)
         if not url:
             return '-'
         return html(
             'a',
-            html('img', src=image_url, alt=status, height=20),
+            html('img', src=image_url, alt=status, height='20'),
             href=url,
         )
 
-    def get_status(self, project):
+    def get_status(self, project: Project) -> StatusTuple:
         raise NotImplementedError
 
 
@@ -977,8 +1025,8 @@ class TravisColumn(StatusColumn):
     title = 'Travis CI'
     title_narrow = 'Travis CI status'
 
-    def get_status(self, project):
-        return (
+    def get_status(self, project: Project) -> StatusTuple:
+        return StatusTuple(
             project.travis_url,
             project.travis_image_url,
             project.travis_status,
@@ -988,13 +1036,13 @@ class TravisColumn(StatusColumn):
 class JenkinsColumn(StatusColumn):
     js_sort_rule = ('sortAltText', 'jenkins build status in alt text')
 
-    def __init__(self, job, **kwargs):
+    def __init__(self, job: JenkinsJobConfig, **kwargs) -> None:
         super().__init__(title=f"Jenkins {job.title}", **kwargs)
         self.title_narrow = f"Jenkins {job.title} status"
         self.job = job
 
-    def get_status(self, project):
-        return (
+    def get_status(self, project: Project) -> StatusTuple:
+        return StatusTuple(
             project.get_jenkins_url(self.job),
             project.get_jenkins_image_url(self.job),
             project.get_jenkins_status(self.job),
@@ -1006,8 +1054,8 @@ class AppveyorColumn(StatusColumn):
     title_narrow = 'Appveyor status'
     js_sort_rule = ('sortAltText', 'appveyor build status in alt text')
 
-    def get_status(self, project):
-        return (
+    def get_status(self, project: Project) -> StatusTuple:
+        return StatusTuple(
             project.appveyor_url,
             project.appveyor_image_url,
             project.appveyor_status,
@@ -1019,13 +1067,13 @@ class CoverallsColumn(StatusColumn):
     title_narrow = 'Coveralls status'
     js_sort_rule = ('sortCoverage', 'coverage percentage in data attribute')
 
-    def get_data(self, project):
+    def get_data(self, project: Project) -> Dict[str, str]:
         return dict(
             coverage=project.coverage(),
         )
 
-    def get_status(self, project):
-        return (
+    def get_status(self, project: Project) -> StatusTuple:
+        return StatusTuple(
             project.coveralls_url,
             project.coveralls_image_url,
             project.coverage('{}%', 'unknown'),
@@ -1040,29 +1088,29 @@ class DataColumn(Column):
       #${page.name} span.none { color: #999; }
     ''')
 
-    def inner_html(self, project):
+    def inner_html(self, project: Project) -> Markup:
         new, total = self.get_counts(project)
         return html(
             'a',
             href=self.get_url(project),
             title=f'{new} new, {total} total',
             body=markupsafe.Markup(' ').join((
-                html('span', new, class_='new' if new else 'none'),
+                html('span', f'{new}', class_='new' if new else 'none'),
                 html(None if total else 'span', f'({total})', class_='none'),
             )),
         )
 
-    def get_data(self, project):
+    def get_data(self, project: Project) -> Dict[str, str]:
         new, total = self.get_counts(project)
         return dict(
-            new=new,
-            total=total,
+            new=str(new),
+            total=str(total),
         )
 
-    def get_url(self, project):
+    def get_url(self, project: Project) -> Optional[str]:
         raise NotImplementedError
 
-    def get_counts(self, project):
+    def get_counts(self, project: Project) -> Tuple[int, int]:
         raise NotImplementedError
 
 
@@ -1072,10 +1120,10 @@ class IssuesColumn(DataColumn):
     css_class = 'issues'
     js_sort_rule = ('sortIssues', 'issue counts in data attributes')
 
-    def get_url(self, project):
+    def get_url(self, project: Project) -> Optional[str]:
         return project.issues_url
 
-    def get_counts(self, project):
+    def get_counts(self, project: Project) -> Tuple[int, int]:
         return (
             project.unlabeled_open_issues_count,
             project.open_issues_count,
@@ -1088,10 +1136,10 @@ class PullsColumn(DataColumn):
     css_class = 'pulls'
     js_sort_rule = ('sortIssues', 'PR counts in data attributes')
 
-    def get_url(self, project):
+    def get_url(self, project: Project) -> Optional[str]:
         return project.pulls_url
 
-    def get_counts(self, project):
+    def get_counts(self, project: Project) -> Tuple[int, int]:
         return (
             project.unlabeled_open_pulls_count,
             project.open_pulls_count,
@@ -1119,14 +1167,14 @@ class PythonSupportColumn(Column):
       }
     ''')
 
-    def __init__(self, ver, **kwargs):
+    def __init__(self, ver: str, **kwargs) -> None:
         super().__init__(title=ver, **kwargs)
         self.title_narrow = ver if ver.startswith('PyPy') else f"Python {ver}"
         self.ver = ver
         if ver in PYTHON_EOL_DATE:
             self.title_tooltip = f"Supported until {PYTHON_EOL_DATE[ver]}"
 
-    def inner_html(self, project):
+    def inner_html(self, project: Project) -> Markup:
         supported = self.ver in project.python_versions
         return html('span', class_='yes' if supported else 'no',
                     body='+' if supported else '\u2212')
@@ -1138,12 +1186,12 @@ class PypiStatsColumn(Column):
     title_narrow = 'Downloads last month'
     css_class = 'downloads'
 
-    def inner_html(self, project):
+    def inner_html(self, project: Project) -> Markup:
         return html('a', href=project.pypistats_url,
                     body=f'{project.downloads:,}' if project.downloads is not None else '-')
 
 
-def get_report_pages(config):
+def get_report_pages(config: Configuration) -> Pages:
     return Pages([
         Page('Release status', [
             NameColumn(),
@@ -1365,19 +1413,19 @@ ${page.js_render_header()}\\
 ''')
 
 
-def nice_date(date_string):
+def nice_date(date_string: str) -> str:
     # specify format because https://github.com/crsmithdev/arrow/issues/82
     return arrow.get(date_string, 'YYYY-MM-DD HH:mm:ss Z').humanize()
 
 
-def pluralize(number, noun):
+def pluralize(number: int, noun: str) -> str:
     if number == 1:
         assert noun.endswith('s')
         noun = noun[:-1]  # poor Englishman's i18n
     return '{} {}'.format(number, noun)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Summarize release status of several projects")
     parser.add_argument('--version', action='version',
@@ -1446,8 +1494,9 @@ def main():
         print_report(projects, args.verbose)
 
 
-def print_report(projects, verbose, file=None):
-    print_ = functools.partial(print, file=file) if file else print
+def print_report(projects: List[Project], verbose: int, file: TextIO = None) -> None:
+    # https://github.com/python/mypy/issues/8928
+    print_ = functools.partial(print, file=file if file is not None else sys.stdout)
     for project in projects:
         project.precompute('name pending_commits last_tag last_tag_date'.split())
         if verbose >= 1:
@@ -1467,7 +1516,7 @@ def print_report(projects, verbose, file=None):
             print_("")
 
 
-def print_html_report(projects, config, filename=None):
+def print_html_report(projects: List[Project], config: Configuration, filename: str = None) -> None:
     # I want atomicity: don't destroy old .html file if an exception happens
     # during rendering.
     html = template.render_unicode(

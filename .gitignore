@@ -15,3 +15,4 @@ pip-selfcheck.json
 package-lock.json
 .coverage
 index.html
+.mypy_cache/
