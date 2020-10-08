@@ -47,7 +47,7 @@ import requests_cache
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.14.1'
+__version__ = '0.14.2'
 
 log = logging.getLogger('project-summary')
 
@@ -772,11 +772,10 @@ def html(tag: Optional[str], body: Optional[str] = '', **kw: Optional[str]) -> m
 #
 
 
-PYTHON_VERSIONS = ['2.7', '3.5', '3.6', '3.7', '3.8', '3.9', 'PyPy']
+PYTHON_VERSIONS = ['2.7', '3.6', '3.7', '3.8', '3.9', 'PyPy']
 PYTHON_EOL_DATE = {
     # Source: https://devguide.python.org/#status-of-python-branches
     '2.7': '2020-01-01',
-    '3.5': '2020-09-13',
     '3.6': '2021-12-23',
     '3.7': '2023-06-27',
     '3.8': '2024-10-01',  # approximate
