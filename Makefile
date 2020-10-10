@@ -10,11 +10,11 @@ help:
 	echo "make update-assets    # update assets files from bower.json"
 
 .PHONY: test
-test: bin/pytest
+test: bin/pytest bin/summary
 	bin/pytest
 
 .PHONY: test
-coverage: bin/pytest bin/coverage
+coverage: bin/pytest bin/coverage bin/summary
 	bin/coverage run -m pytest
 	bin/coverage report -m
 
