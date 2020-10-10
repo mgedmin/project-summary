@@ -1,25 +1,26 @@
 .PHONY: all
-all: bin/pip bin/summary
+all: bin/pip bin/summary        ##: create a local virtualenv with bin/summary
+
+HELP_INDENT = ""
+HELP_PREFIX = "make "
+HELP_WIDTH = 18
+HELP_SEPARATOR = " - "
 
 .PHONY: help
-help:
-	echo "make                  # build"
-	echo "make test             # run tests"
-	echo "make coverage         # measure test coverage"
-	echo "make clean            # remove build artefacts"
-	echo "make update-assets    # update assets files from bower.json"
+help:                                   ##: describe available make targets
+	@grep -E -e '^[a-zA-Z_-]+:.*?##: .*$$' -e '^##:' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":[^#]*##: "}; /^##:/ {printf "\n"} /^[^#]/ {printf "%s\033[36m%-$(HELP_WIDTH)s\033[0m%s%s\n", $(HELP_INDENT), $(HELP_PREFIX) $$1, $(HELP_SEPARATOR), $$2}'
 
 .PHONY: test
-test: bin/pytest bin/summary
+test: bin/pytest bin/summary            ##: run tests
 	bin/pytest
 
 .PHONY: test
-coverage: bin/pytest bin/coverage bin/summary
+coverage: bin/pytest bin/coverage bin/summary   ##: measure test coverage
 	bin/coverage run -m pytest
 	bin/coverage report -m
 
 .PHONY: clean
-clean:
+clean:                                  ##: remove build artifacts
 	rm -rf .env bin .httpcache.sqlite __pycache__ .pytest_cache/ *.egg-info *.pyc package-lock.json
 
 bin:
@@ -74,7 +75,7 @@ font_files = \
     bower_components/bootstrap/dist/fonts/*.woff*
 
 .PHONY: update-assets
-update-assets: bower_components
+update-assets: bower_components         ##: update assets files from bower.json
 	rm -rf assets
 	mkdir -p assets/css assets/js assets/fonts
 	cp $(css_files) assets/css/
