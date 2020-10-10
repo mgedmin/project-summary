@@ -13,6 +13,7 @@ import linecache
 import logging
 import math
 import os
+import pathlib
 import re
 import subprocess
 import sys
@@ -47,7 +48,7 @@ import requests_cache
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.14.2'
+__version__ = '0.15.0'
 
 log = logging.getLogger('project-summary')
 
@@ -1440,6 +1441,8 @@ def main() -> None:
                         help="ignore checkouts that aren't of the main branch")
     parser.add_argument('--html', action='store_true',
                         help='produce HTML output')
+    parser.add_argument('--symlink-assets', action='store_true',
+                        help='symlink the assets directory next to the HTML output file')
     parser.add_argument('-o', metavar='FILENAME', dest='output_file',
                         help='write the output to a file (default: stdout)')
     parser.add_argument('--http-cache', default='.httpcache', metavar='DBNAME',
@@ -1485,6 +1488,8 @@ def main() -> None:
             if args.verbose:
                 print_report(projects, args.verbose - 1, file=sys.stderr)
             print_html_report(projects, config, args.output_file)
+            if args.symlink_assets:
+                symlink_assets(args.output_file)
         except GitHubError as e:
             sys.exit("GitHub error: %s" % e)
         except Exception:
@@ -1533,6 +1538,14 @@ def print_html_report(projects: List[Project], config: Configuration, filename: 
             f.write(html)
     else:
         print(html)
+
+
+def symlink_assets(filename: str = None) -> None:
+    if filename and filename != '-':
+        symlink = pathlib.Path(filename).with_name('assets')
+        if not symlink.exists():
+            target = pathlib.Path(__file__).with_name('assets')
+            symlink.symlink_to(target)
 
 
 if __name__ == '__main__':
