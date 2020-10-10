@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import os
+
 from setuptools import setup
+
 
 here = os.path.dirname(__file__)
 with open(os.path.join(here, 'README.rst')) as f:
@@ -21,7 +23,7 @@ setup(
     description='Script to generate a summary page for all my projects',
     long_description=long_description,
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production/Stable',
         'Environment :: Console',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: GNU General Public License (GPL)',

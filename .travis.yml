@@ -10,6 +10,7 @@ jobs:
     - env: TOXENV=mypy
     - env: TOXENV=check-manifest
     - env: TOXENV=check-python-versions
+    - env: TOXENV=isort
 install:
   - pip install tox-travis
 script:
