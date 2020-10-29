@@ -512,14 +512,14 @@ class Project:
         if not self.uses_travis:
             return None
         # Travis has 20px-high SVG images in the new (flat) style
-        template = 'https://api.travis-ci.org/{owner}/{name}.svg?branch={branch}'
+        template = 'https://api.travis-ci.com/{owner}/{name}.svg?branch={branch}'
         return template.format(name=self.name, owner=self.owner, branch=self.branch)
 
     @property
     def travis_url(self) -> Optional[str]:
         if not self.uses_travis:
             return None
-        return 'https://travis-ci.org/{owner}/{name}'.format(name=self.name,
+        return 'https://travis-ci.com/{owner}/{name}'.format(name=self.name,
                                                              owner=self.owner)
 
     @reify
