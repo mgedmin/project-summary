@@ -1,6 +1,9 @@
 Project Overview
 ================
 
+.. image:: https://travis-ci.com/mgedmin/project-summary.svg?branch=master
+    :target: https://travis-ci.com/mgedmin/project-summary
+
 I maintain a bunch of Open Source projects.  Most of them in Python.
 Most of them on GitHub.
 
@@ -9,9 +12,9 @@ changes and it's time to make a release.
 
 This is a script to help:
 
-- it runs as a Jenkins job every hour
-- re-uses my Jenkins workspaces to look at git clones of the projects
-  (they're in /var/lib/jenkins/jobs/\*/workspace)
+- it runs every hour
+- pulls the latest changes for all the projects checked out in
+  /srv/project-summary/
 - finds the latest tag in each Git repo and counts commit since them
 - collects some other data from the public GitHub API (such as the number of
   open issues) and other sources (such as Python version support classifiers in
@@ -24,18 +27,6 @@ You can see the result at https://projects.gedmin.as/
 Setup
 ~~~~~
 
-- set up a Jenkins job to build this hourly
-  (make && bin/summary --html -o index.html)
-- create /var/www/projects.gedmin.as/
-- symlink /var/lib/jenkins/jobs/project-summary/assets and index.html
-  into /var/www/projects.gedmin.as/
-- set up Apache to serve /var/www/projects.gedmin.as at
-  https://projects.gedmin.as/
-
-
-Alternative setup (no Jenkins)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
 - check out this repository somewhere (e.g. /opt/project-summary)
 - check out all your projects somewhere else (e.g. under /srv/project-summary/)
 - create a cron script to run::
@@ -44,6 +35,18 @@ Alternative setup (no Jenkins)
 
 - create /var/www/projects.gedmin.as/
 - symlink /opt/project-summary/assets and index.html
+  into /var/www/projects.gedmin.as/
+- set up Apache to serve /var/www/projects.gedmin.as at
+  https://projects.gedmin.as/
+
+
+Alternative setup (Jenkins)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- set up a Jenkins job to build this hourly
+  (make && bin/summary --html -o index.html)
+- create /var/www/projects.gedmin.as/
+- symlink /var/lib/jenkins/jobs/project-summary/assets and index.html
   into /var/www/projects.gedmin.as/
 - set up Apache to serve /var/www/projects.gedmin.as at
   https://projects.gedmin.as/
