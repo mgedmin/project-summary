@@ -323,6 +323,7 @@ def test_html():
     assert html('span', 'foo', title='b"r') == '<span title="b&#34;r">foo</span>'
     assert html('span', 'foo', class_="bar") == '<span class="bar">foo</span>'
     assert html('img', src="a.png") == '<img src="a.png">'
+    assert html('img', None, src="a.png") == '<img src="a.png">'
     assert html('a', html('img', src="a.png"), href="/") == '<a href="/"><img src="a.png"></a>'
     assert isinstance(html('hello'), markupsafe.Markup)
 
