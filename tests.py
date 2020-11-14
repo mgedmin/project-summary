@@ -279,7 +279,7 @@ def test_log_url_cache_miss(caplog):
 
 def test_log_url_cache_hit(caplog):
     caplog.set_level(logging.DEBUG)
-    session = requests_cache.CachedSession()
+    session = requests_cache.CachedSession(backend='memory')
     add_to_cache('http://example.com', session)
     log_url("http://example.com", session)
     assert caplog.messages == ['HIT http://example.com']
