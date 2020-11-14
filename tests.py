@@ -1,9 +1,12 @@
+import datetime
 import subprocess
 import sys
 import textwrap
 
 import markupsafe
 import pytest
+import requests
+import requests_cache
 
 import summary
 from summary import (
@@ -33,6 +36,7 @@ from summary import (
     get_project_owner,
     get_report_pages,
     html,
+    is_cached,
     nice_date,
     normalize_github_url,
     pipe,
@@ -229,6 +233,39 @@ def test_Configuration_allows_underscores_or_dashes(tmp_path):
     assert cfg.pypi_name_map == {
         'foo': 'bar',
     }
+
+
+def test_is_cached_no_cache():
+    session = requests.Session()
+    assert not is_cached('https://example.com', session)
+
+
+def test_is_cached_empty_cache():
+    session = requests_cache.CachedSession(backend='memory')
+    assert not is_cached('https://example.com', session)
+
+
+def test_is_cached_has_cache_but_no_expiration():
+    session = requests_cache.CachedSession(backend='memory')
+    url = 'https://example.com'
+    request = session.prepare_request(requests.Request('GET', url))
+    cache_key = session.cache.create_key(request)
+    response = requests.Response()
+    response.request = request
+    session.cache.save_response(cache_key, response)
+    assert is_cached(url, session)
+
+
+def test_is_cached_has_cache_not_expired():
+    session = requests_cache.CachedSession(
+        backend='memory', expire_after=datetime.timedelta(minutes=15))
+    url = 'https://example.com'
+    request = session.prepare_request(requests.Request('GET', url))
+    cache_key = session.cache.create_key(request)
+    response = requests.Response()
+    response.request = request
+    session.cache.save_response(cache_key, response)
+    assert is_cached(url, session)
 
 
 @pytest.mark.parametrize('url, expected', [

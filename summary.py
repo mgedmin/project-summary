@@ -233,13 +233,15 @@ def is_cached(url: str, session) -> bool:
         session.prepare_request(requests.Request('GET', url)))
     try:
         response, timestamp = session.cache.get_response_and_time(cache_key)
-    except (ImportError, TypeError):
+    except (ImportError, TypeError):  # pragma: nocover
         return False
-    if response is None or timestamp is None:
+    if response is None or timestamp is None:  # pragma: nocover
         return False
     # XXX: private attributes are not nice, I could take the value directly
     # from args.cache_duration and convert to datetime.timedelta()
     expire_after = session._cache_expire_after
+    if expire_after is None:
+        return True
     # XXX: there's a slight chance it might expire after I print but before I
     # actually do the query!
     is_expired = datetime.datetime.utcnow() - timestamp > expire_after
