@@ -1,4 +1,5 @@
 import datetime
+import logging
 import subprocess
 import sys
 import textwrap
@@ -37,6 +38,7 @@ from summary import (
     get_report_pages,
     html,
     is_cached,
+    log_url,
     nice_date,
     normalize_github_url,
     pipe,
@@ -245,14 +247,18 @@ def test_is_cached_empty_cache():
     assert not is_cached('https://example.com', session)
 
 
-def test_is_cached_has_cache_but_no_expiration():
-    session = requests_cache.CachedSession(backend='memory')
-    url = 'https://example.com'
+def add_to_cache(url, session):
     request = session.prepare_request(requests.Request('GET', url))
     cache_key = session.cache.create_key(request)
     response = requests.Response()
     response.request = request
     session.cache.save_response(cache_key, response)
+
+
+def test_is_cached_has_cache_but_no_expiration():
+    session = requests_cache.CachedSession(backend='memory')
+    url = 'https://example.com'
+    add_to_cache(url, session)
     assert is_cached(url, session)
 
 
@@ -260,12 +266,23 @@ def test_is_cached_has_cache_not_expired():
     session = requests_cache.CachedSession(
         backend='memory', expire_after=datetime.timedelta(minutes=15))
     url = 'https://example.com'
-    request = session.prepare_request(requests.Request('GET', url))
-    cache_key = session.cache.create_key(request)
-    response = requests.Response()
-    response.request = request
-    session.cache.save_response(cache_key, response)
+    add_to_cache(url, session)
     assert is_cached(url, session)
+
+
+def test_log_url_cache_miss(caplog):
+    caplog.set_level(logging.DEBUG)
+    session = requests.Session()
+    log_url("http://example.com", session)
+    assert caplog.messages == ['GET http://example.com']
+
+
+def test_log_url_cache_hit(caplog):
+    caplog.set_level(logging.DEBUG)
+    session = requests_cache.CachedSession()
+    add_to_cache('http://example.com', session)
+    log_url("http://example.com", session)
+    assert caplog.messages == ['HIT http://example.com']
 
 
 @pytest.mark.parametrize('url, expected', [
