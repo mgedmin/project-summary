@@ -751,6 +751,24 @@ def test_Project_pypi_url(tmp_path):
     assert project.pypi_url == 'https://pypi.org/project/example/'
 
 
+def test_Project_jenkins_job(tmp_path):
+    proj_path = tmp_path / "proj"
+    proj_path.mkdir()
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(proj_path, config, session)
+    assert project.jenkins_job == 'proj'
+
+
+def test_Project_jenkins_job_using_workspace(tmp_path):
+    proj_path = tmp_path / "proj" / "workspace"
+    proj_path.mkdir(parents=True)
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(proj_path, config, session)
+    assert project.jenkins_job == 'proj'
+
+
 def test_html():
     assert html(None, 'foo bar', class_='ignored') == 'foo bar'
     assert html(None, 'foo < bar') == 'foo &lt; bar'
