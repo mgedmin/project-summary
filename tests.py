@@ -563,10 +563,10 @@ def test_get_date_of_tag(tmp_path):
     subprocess.run(['git', 'init'], cwd=tmp_path)
     subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
                     '-m', 'initial'], cwd=tmp_path)
-    subprocess.run(['git', 'tag', '1.0'], cwd=tmp_path)
     before = time.strftime('%Y-%m-%d %H:%M:%S %z')
-    result = get_date_of_tag(tmp_path, '1.0')
+    subprocess.run(['git', 'tag', '1.0'], cwd=tmp_path)
     after = time.strftime('%Y-%m-%d %H:%M:%S %z')
+    result = get_date_of_tag(tmp_path, '1.0')
     assert before <= result <= after
 
 
