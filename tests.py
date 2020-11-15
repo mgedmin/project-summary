@@ -717,6 +717,23 @@ def test_Project_owner_on_github(tmp_path):
     assert project.owner == 'mgedmin'
 
 
+def test_Project_name_remote(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    project.url = 'https://github.com/mgedmin/example'
+    assert project.name == 'example'
+
+
+def test_Project_name_local(tmp_path):
+    proj_path = tmp_path / "proj"
+    proj_path.mkdir()
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(proj_path, config, session)
+    assert project.name == 'proj'
+
+
 def test_html():
     assert html(None, 'foo bar', class_='ignored') == 'foo bar'
     assert html(None, 'foo < bar') == 'foo &lt; bar'
