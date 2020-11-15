@@ -734,6 +734,15 @@ def test_Project_name_local(tmp_path):
     assert project.name == 'proj'
 
 
+def test_Project_pypi_name_local(tmp_path):
+    proj_path = tmp_path / "proj"
+    proj_path.mkdir()
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(proj_path, config, session)
+    assert project.pypi_name == 'proj'
+
+
 def test_html():
     assert html(None, 'foo bar', class_='ignored') == 'foo bar'
     assert html(None, 'foo < bar') == 'foo &lt; bar'

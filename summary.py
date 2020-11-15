@@ -488,6 +488,7 @@ class Project:
 
     @reify
     def pypi_name(self) -> str:
+        # XXX: this is nonsense, I should be extracting the name from setup.py
         return self.config.pypi_name_map.get(self.name, self.name)
 
     @property
