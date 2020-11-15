@@ -787,6 +787,24 @@ def test_Project_compare_url_github(tmp_path):
     assert project.compare_url == 'https://github.com/mgedmin/example/compare/1.0...main'
 
 
+def test_Project_travis_image_url_no_travis(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    assert project.travis_image_url is None
+
+
+def test_Project_travis_image_url_github(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    project.owner = 'mgedmin'
+    project.name = 'example'
+    project.branch = 'main'
+    project.uses_travis = True
+    assert project.travis_image_url == 'https://api.travis-ci.com/mgedmin/example.svg?branch=main'
+
+
 def test_html():
     assert html(None, 'foo bar', class_='ignored') == 'foo bar'
     assert html(None, 'foo < bar') == 'foo &lt; bar'
