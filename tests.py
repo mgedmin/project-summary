@@ -40,6 +40,7 @@ from summary import (
     get_project_name,
     get_project_owner,
     get_report_pages,
+    get_repos,
     github_request,
     github_request_list,
     html,
@@ -388,6 +389,13 @@ def test_github_request_list_pages():
     })
     result = github_request_list('http://example.com/items', session)
     assert result == [{'a': 2}, {'b': 3}]
+
+
+def test_get_repos(tmp_path):
+    (tmp_path / 'a' / '.git').mkdir(parents=True)
+    config = Configuration(tmp_path / 'ps.cfg')
+    config._config.set('project-summary', 'projects', str(tmp_path / '*'))
+    assert get_repos(config) == [str(tmp_path / 'a')]
 
 
 @pytest.mark.parametrize('url, expected', [
