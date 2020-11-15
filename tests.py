@@ -674,6 +674,34 @@ def test_Project_uses_jenkins(tmp_path):
     assert not project.uses_jenkins
 
 
+def test_Project_branch(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    project.branch
+
+
+def test_Project_last_tag(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    project.last_tag
+
+
+def test_Project_last_tag_date(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    project.last_tag_date
+
+
+def test_Project_pending_commits(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    assert project.pending_commits == []
+
+
 def test_html():
     assert html(None, 'foo bar', class_='ignored') == 'foo bar'
     assert html(None, 'foo < bar') == 'foo &lt; bar'
