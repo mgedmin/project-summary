@@ -308,10 +308,10 @@ def get_repos(config: Configuration) -> List[str]:
 
 
 def get_repo_url(repo_path: str) -> Optional[str]:
-    try:
-        return pipe("git", "ls-remote", "--get-url", "origin", cwd=repo_path).strip()
-    except IndexError:
+    url = pipe("git", "ls-remote", "--get-url", "origin", cwd=repo_path).strip()
+    if url == 'origin':
         return None
+    return url
 
 
 def normalize_github_url(url: Optional[str]) -> Optional[str]:

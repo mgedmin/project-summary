@@ -39,6 +39,7 @@ from summary import (
     format_cmd,
     get_project_name,
     get_project_owner,
+    get_repo_url,
     get_report_pages,
     get_repos,
     github_request,
@@ -396,6 +397,29 @@ def test_get_repos(tmp_path):
     config = Configuration(tmp_path / 'ps.cfg')
     config._config.set('project-summary', 'projects', str(tmp_path / '*'))
     assert get_repos(config) == [str(tmp_path / 'a')]
+
+
+def test_get_repo_url_not_git_repo(tmp_path):
+    assert not get_repo_url(tmp_path)
+
+
+def test_get_repo_url_no_remotes(tmp_path):
+    subprocess.run(['git', 'init'], cwd=tmp_path)
+    assert not get_repo_url(tmp_path)
+
+
+def test_get_repo_url_no_origin(tmp_path):
+    subprocess.run(['git', 'init'], cwd=tmp_path)
+    subprocess.run(['git', 'remote', 'add', 'example', 'https://example.com'],
+                   cwd=tmp_path)
+    assert not get_repo_url(tmp_path)
+
+
+def test_get_repo_url(tmp_path):
+    subprocess.run(['git', 'init'], cwd=tmp_path)
+    subprocess.run(['git', 'remote', 'add', 'origin', 'https://example.com'],
+                   cwd=tmp_path)
+    assert get_repo_url(tmp_path) == 'https://example.com'
 
 
 @pytest.mark.parametrize('url, expected', [
