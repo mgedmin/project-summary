@@ -533,7 +533,8 @@ class Project:
         res = self._http_get(self.travis_image_url)
         return self._parse_svg_text(res.text, skip_words={'build'})
 
-    def _parse_svg_text(self, svg_text: str, skip_words: Collection[str] = ()) -> str:
+    @staticmethod
+    def _parse_svg_text(svg_text: str, skip_words: Collection[str] = ()) -> str:
         # let's parse SVG with regexps, what could go wrong???
         text_rx = re.compile(r'<text([^>]*)>([^<]*)</text>')
         status = []

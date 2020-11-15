@@ -807,6 +807,36 @@ def test_Project_travis_urls_github(tmp_path):
     assert project.travis_url == 'https://travis-ci.com/mgedmin/example'
 
 
+def test_Project_travis_status_no_travis(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    assert project.travis_status is None
+
+
+def test_Project_travis_status_with_travis(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession({
+        'https://example.com/buildstatus.svg': MockResponse(
+            text='<text>success</text>',
+        ),
+    })
+    project = Project(tmp_path, config, session)
+    project.uses_travis = True
+    project.travis_image_url = 'https://example.com/buildstatus.svg'
+    assert project.travis_status == 'success'
+
+
+def test_Project_parse_svg_text():
+    result = Project._parse_svg_text('''
+      <text fill-opacity="0.5">shadow text</text>
+      <text>hello</text>
+      <text>cruel</text>
+      <text>world</text>
+    ''', {'cruel'})
+    assert result == 'hello world'
+
+
 def test_html():
     assert html(None, 'foo bar', class_='ignored') == 'foo bar'
     assert html(None, 'foo < bar') == 'foo &lt; bar'
