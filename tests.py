@@ -38,6 +38,7 @@ from summary import (
     VersionColumn,
     format_cmd,
     get_branch_name,
+    get_date_of_tag,
     get_last_tag,
     get_project_name,
     get_project_owner,
@@ -553,6 +554,17 @@ def test_get_last_tag(tmp_path):
     subprocess.run(['git', 'tag', '1.0'], cwd=tmp_path)
     result = get_last_tag(tmp_path)
     assert result == '1.0'
+
+
+def test_get_date_of_tag(tmp_path):
+    subprocess.run(['git', 'init'], cwd=tmp_path)
+    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
+                    '-m', 'initial'], cwd=tmp_path)
+    subprocess.run(['git', 'tag', '1.0'], cwd=tmp_path)
+    before = time.strftime('%Y-%m-%d %H:%M:%S %z')
+    result = get_date_of_tag(tmp_path, '1.0')
+    after = time.strftime('%Y-%m-%d %H:%M:%S %z')
+    assert before <= result <= after
 
 
 def test_html():
