@@ -1,8 +1,10 @@
 import datetime
+import json
 import logging
 import subprocess
 import sys
 import textwrap
+import time
 
 import markupsafe
 import pytest
@@ -19,6 +21,8 @@ from summary import (
     CoverallsColumn,
     DataColumn,
     DateColumn,
+    GitHubError,
+    GitHubRateLimitError,
     IssuesColumn,
     JenkinsColumn,
     JenkinsJobConfig,
@@ -36,6 +40,7 @@ from summary import (
     get_project_name,
     get_project_owner,
     get_report_pages,
+    github_request,
     html,
     is_cached,
     log_url,
@@ -283,6 +288,62 @@ def test_log_url_cache_hit(caplog):
     add_to_cache('http://example.com', session)
     log_url("http://example.com", session)
     assert caplog.messages == ['HIT http://example.com']
+
+
+class MockSession:
+
+    def __init__(self, prototype=None):
+        self.prototype = prototype or MockResponse()
+
+    def get(self, url):
+        return self.prototype._copy()
+
+
+class MockResponse:
+
+    def __init__(self, status_code=200, text='{}', headers=None):
+        self.status_code = status_code
+        self.text = text
+        self.headers = {}
+        if headers:
+            self.headers.update(headers)
+
+    def _copy(self):
+        return MockResponse(self.status_code, self.text, self.headers)
+
+    def json(self):
+        return json.loads(self.text)
+
+
+def test_github_request():
+    session = MockSession()
+    response = github_request('http://example.com/', session)
+    assert response.status_code == 200
+
+
+def test_github_request_json_error():
+    session = MockSession(MockResponse(text='not json'))
+    with pytest.raises(GitHubError):
+        github_request('http://example.com/', session)
+
+
+def test_github_request_error():
+    session = MockSession(MockResponse(400, text='{"message": "oopie wopsie"}'))
+    with pytest.raises(GitHubError):
+        github_request('http://example.com/', session)
+
+
+def test_github_request_rate_limit():
+    session = MockSession(MockResponse(
+        status_code=403,
+        text='{"message": "slow it down pls"}',
+        headers={
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': str(int(time.time() + 60)),
+        },
+    ))
+    with pytest.raises(GitHubRateLimitError):
+        github_request('http://example.com/', session)
 
 
 @pytest.mark.parametrize('url, expected', [
