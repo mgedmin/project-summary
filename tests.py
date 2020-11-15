@@ -615,6 +615,33 @@ def test_Project_pull(tmp_path):
     project.pull()
 
 
+def test_Project_precompute(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    project.precompute(['url'])
+
+
+def test_Project_url(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    assert project.url is None
+
+
+@pytest.mark.parametrize("url, expected", [
+    (None, False),
+    ('https://git.example.com/example', False),
+    ('https://github.com/mgedmin/example', True),
+])
+def test_Project_is_on_github(tmp_path, url, expected):
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    project.url = url
+    assert project.is_on_github == expected
+
+
 def test_html():
     assert html(None, 'foo bar', class_='ignored') == 'foo bar'
     assert html(None, 'foo < bar') == 'foo &lt; bar'
