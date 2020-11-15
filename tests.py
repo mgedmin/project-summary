@@ -743,6 +743,14 @@ def test_Project_pypi_name_local(tmp_path):
     assert project.pypi_name == 'proj'
 
 
+def test_Project_pypi_url(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    project.pypi_name = 'example'
+    assert project.pypi_url == 'https://pypi.org/project/example/'
+
+
 def test_html():
     assert html(None, 'foo bar', class_='ignored') == 'foo bar'
     assert html(None, 'foo < bar') == 'foo &lt; bar'
