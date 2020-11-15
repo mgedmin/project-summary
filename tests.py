@@ -29,6 +29,7 @@ from summary import (
     NameColumn,
     Page,
     Pages,
+    Project,
     PullsColumn,
     PypiStatsColumn,
     PythonSupportColumn,
@@ -399,7 +400,7 @@ def test_github_request_list_pages():
 
 def test_get_repos(tmp_path):
     (tmp_path / 'a' / '.git').mkdir(parents=True)
-    config = Configuration(tmp_path / 'ps.cfg')
+    config = Configuration('/dev/null')
     config._config.set('project-summary', 'projects', str(tmp_path / '*'))
     assert get_repos(config) == [str(tmp_path / 'a')]
 
@@ -598,6 +599,20 @@ def test_get_supported_python_versions(tmp_path):
     '''))
     result = get_supported_python_versions(tmp_path)
     assert result == ['3.8', '3.9']
+
+
+def test_Project_fetch(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    project.fetch()
+
+
+def test_Project_pull(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    project.pull()
 
 
 def test_html():
