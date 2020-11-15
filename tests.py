@@ -40,6 +40,7 @@ from summary import (
     get_branch_name,
     get_date_of_tag,
     get_last_tag,
+    get_pending_commits,
     get_project_name,
     get_project_owner,
     get_repo_url,
@@ -565,6 +566,22 @@ def test_get_date_of_tag(tmp_path):
     result = get_date_of_tag(tmp_path, '1.0')
     after = time.strftime('%Y-%m-%d %H:%M:%S %z')
     assert before <= result <= after
+
+
+def test_get_pending_commits(tmp_path):
+    origin = tmp_path / 'origin'
+    subprocess.run(['git', 'init', origin])
+    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
+                    '-m', 'initial'], cwd=origin)
+    subprocess.run(['git', 'tag', '1.0'], cwd=origin)
+    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
+                    '-m', 'a'], cwd=origin)
+    commit = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=origin,
+                            stdout=subprocess.PIPE).stdout.decode().strip()
+    checkout = tmp_path / 'checkout'
+    subprocess.run(['git', 'clone', origin, checkout])
+    result = get_pending_commits(checkout, '1.0')
+    assert result == [f'{commit[:7]} a']
 
 
 def test_html():
