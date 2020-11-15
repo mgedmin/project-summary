@@ -46,6 +46,7 @@ from summary import (
     get_repo_url,
     get_report_pages,
     get_repos,
+    get_supported_python_versions,
     github_request,
     github_request_list,
     html,
@@ -582,6 +583,21 @@ def test_get_pending_commits(tmp_path):
     subprocess.run(['git', 'clone', origin, checkout])
     result = get_pending_commits(checkout, '1.0')
     assert result == [f'{commit[:7]} a']
+
+
+def test_get_supported_python_versions(tmp_path):
+    setup_py = tmp_path / 'setup.py'
+    setup_py.write_text(textwrap.dedent('''\
+        from setuptools import setup
+        setup(
+            classifiers=[
+                'Programming Language :: Python :: 3.8',
+                'Programming Language :: Python :: 3.9',
+            ],
+        )
+    '''))
+    result = get_supported_python_versions(tmp_path)
+    assert result == ['3.8', '3.9']
 
 
 def test_html():
