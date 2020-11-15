@@ -702,6 +702,21 @@ def test_Project_pending_commits(tmp_path):
     assert project.pending_commits == []
 
 
+def test_Project_owner(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    assert not project.owner
+
+
+def test_Project_owner_on_github(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    project.url = 'https://github.com/mgedmin/example'
+    assert project.owner == 'mgedmin'
+
+
 def test_html():
     assert html(None, 'foo bar', class_='ignored') == 'foo bar'
     assert html(None, 'foo < bar') == 'foo &lt; bar'
