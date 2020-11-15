@@ -642,6 +642,38 @@ def test_Project_is_on_github(tmp_path, url, expected):
     assert project.is_on_github == expected
 
 
+@pytest.mark.parametrize("url", [
+    None,
+    'https://github.com/mgedmin/example',
+])
+def test_Project_uses_travis(tmp_path, url):
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    project.url = url
+    assert not project.uses_travis
+
+
+@pytest.mark.parametrize("url", [
+    None,
+    'https://github.com/mgedmin/example',
+])
+def test_Project_uses_appveyor(tmp_path, url):
+    config = Configuration('/dev/null')
+    config._config.set('project-summary', 'appveyor_account', 'mgedmin')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    project.url = url
+    assert not project.uses_appveyor
+
+
+def test_Project_uses_jenkins(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    assert not project.uses_jenkins
+
+
 def test_html():
     assert html(None, 'foo bar', class_='ignored') == 'foo bar'
     assert html(None, 'foo < bar') == 'foo &lt; bar'
