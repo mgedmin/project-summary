@@ -451,7 +451,7 @@ class Project:
             return False
         return os.path.exists(os.path.join(self.working_tree, 'appveyor.yml'))
 
-    @property
+    @reify
     def uses_jenkins(self) -> bool:
         return bool(self.config.jenkins_url)
 
@@ -471,7 +471,7 @@ class Project:
     def pending_commits(self) -> List[str]:
         return get_pending_commits(self.working_tree, self.last_tag, self.branch)
 
-    @property
+    @reify
     def owner(self) -> Optional[str]:
         if self.is_on_github:
             assert self.url is not None
@@ -479,7 +479,7 @@ class Project:
         else:
             return None
 
-    @property
+    @reify
     def name(self) -> str:
         if self.url:
             return get_project_name(self.url)
@@ -491,18 +491,18 @@ class Project:
         # XXX: this is nonsense, I should be extracting the name from setup.py
         return self.config.pypi_name_map.get(self.name, self.name)
 
-    @property
+    @reify
     def pypi_url(self) -> str:
         return 'https://pypi.org/project/{name}/'.format(name=self.pypi_name)
 
-    @property
+    @reify
     def jenkins_job(self) -> str:
         if os.path.basename(self.working_tree) == 'workspace':
             return os.path.basename(os.path.dirname(self.working_tree))
         else:
             return os.path.basename(self.working_tree)
 
-    @property
+    @reify
     def compare_url(self) -> Optional[str]:
         if not self.is_on_github:
             return None
@@ -510,7 +510,7 @@ class Project:
                                                         branch=self.branch,
                                                         tag=self.last_tag)
 
-    @property
+    @reify
     def travis_image_url(self) -> Optional[str]:
         if not self.uses_travis:
             return None
@@ -518,7 +518,7 @@ class Project:
         template = 'https://api.travis-ci.com/{owner}/{name}.svg?branch={branch}'
         return template.format(name=self.name, owner=self.owner, branch=self.branch)
 
-    @property
+    @reify
     def travis_url(self) -> Optional[str]:
         if not self.uses_travis:
             return None
@@ -545,14 +545,14 @@ class Project:
                 status.append(text)
         return ' '.join(status)
 
-    @property
+    @reify
     def appveyor_image_url(self) -> Optional[str]:
         if not self.uses_appveyor:
             return None
         template = 'https://ci.appveyor.com/api/projects/status/github/{owner}/{name}?branch={branch}&svg=true'
         return template.format(name=self.name, owner=self.owner, branch=self.branch)
 
-    @property
+    @reify
     def appveyor_url(self) -> Optional[str]:
         if not self.uses_appveyor:
             return None
@@ -567,7 +567,7 @@ class Project:
         res = self._http_get(self.appveyor_image_url)
         return self._parse_svg_text(res.text, skip_words={'build'})
 
-    @property
+    @reify
     def coveralls_image_url(self) -> Optional[str]:
         if not self.uses_travis:
             return None
@@ -579,7 +579,7 @@ class Project:
         # template = 'https://img.shields.io/coveralls/{owner}/{name}.svg?style=flat'
         return template.format(name=self.name, owner=self.owner, branch=self.branch)
 
-    @property
+    @reify
     def coveralls_url(self) -> Optional[str]:
         if not self.uses_travis:
             return None
