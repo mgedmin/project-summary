@@ -37,6 +37,7 @@ from summary import (
     TravisColumn,
     VersionColumn,
     format_cmd,
+    get_branch_name,
     get_project_name,
     get_project_owner,
     get_repo_url,
@@ -448,6 +449,100 @@ def test_get_project_owner():
 def test_get_project_name():
     result = get_project_name('https://github.com/mgedmin/project-summary')
     assert result == 'project-summary'
+
+
+def test_get_branch_name(tmp_path):
+    subprocess.run(['git', 'init'], cwd=tmp_path)
+    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
+                    '-m', 'initial'], cwd=tmp_path)
+    result = get_branch_name(tmp_path)
+    assert result == 'master'
+
+
+def test_get_branch_name_detached_head(tmp_path):
+    subprocess.run(['git', 'init'], cwd=tmp_path)
+    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
+                    '-m', 'initial'], cwd=tmp_path)
+    commit = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=tmp_path,
+                            stdout=subprocess.PIPE).stdout.decode().strip()
+    subprocess.run(['git', 'checkout', commit], cwd=tmp_path)
+    result = get_branch_name(tmp_path)
+    assert result == 'master'
+
+
+def test_get_branch_name_detached_head_from_remote(tmp_path):
+    origin = tmp_path / 'origin'
+    subprocess.run(['git', 'init', origin])
+    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
+                    '-m', 'initial'], cwd=origin)
+    checkout = tmp_path / 'checkout'
+    subprocess.run(['git', 'clone', origin, checkout])
+    commit = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=checkout,
+                            stdout=subprocess.PIPE).stdout.decode().strip()
+    subprocess.run(['git', 'checkout', commit], cwd=checkout)
+    result = get_branch_name(checkout)
+    assert result == 'master'
+
+
+def test_get_branch_name_detached_head_different_branch(tmp_path):
+    subprocess.run(['git', 'init'], cwd=tmp_path)
+    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
+                    '-m', 'initial'], cwd=tmp_path)
+    subprocess.run(['git', 'checkout', '-b', 'feature'], cwd=tmp_path)
+    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
+                    '-m', 'blabla'], cwd=tmp_path)
+    commit = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=tmp_path,
+                            stdout=subprocess.PIPE).stdout.decode().strip()
+    subprocess.run(['git', 'checkout', commit], cwd=tmp_path)
+    result = get_branch_name(tmp_path)
+    assert result == 'feature'
+
+
+def test_get_branch_name_stale_detached_head(tmp_path):
+    origin = tmp_path / 'origin'
+    subprocess.run(['git', 'init', origin])
+    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
+                    '-m', 'initial'], cwd=origin)
+    commit = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=origin,
+                            stdout=subprocess.PIPE).stdout.decode().strip()
+    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
+                    '-m', 'blabla'], cwd=origin)
+    checkout = tmp_path / 'checkout'
+    subprocess.run(['git', 'clone', origin, checkout])
+    subprocess.run(['git', 'checkout', commit], cwd=checkout)
+    result = get_branch_name(checkout)
+    assert result == 'master'
+
+
+def test_get_branch_name_stale_detached_head_no_branch(tmp_path):
+    subprocess.run(['git', 'init'], cwd=tmp_path)
+    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
+                    '-m', 'initial'], cwd=tmp_path)
+    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
+                    '-m', 'blabla'], cwd=tmp_path)
+    commit = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=tmp_path,
+                            stdout=subprocess.PIPE).stdout.decode().strip()
+    subprocess.run(['git', 'reset', '--hard', 'HEAD^'], cwd=tmp_path)
+    subprocess.run(['git', 'checkout', commit], cwd=tmp_path)
+    result = get_branch_name(tmp_path)
+    assert result == '(detached)'
+
+
+def test_get_branch_name_stale_detached_head_no_remote_branch(tmp_path):
+    origin = tmp_path / 'origin'
+    subprocess.run(['git', 'init', origin])
+    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
+                    '-m', 'initial'], cwd=origin)
+    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
+                    '-m', 'blabla'], cwd=origin)
+    commit = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=origin,
+                            stdout=subprocess.PIPE).stdout.decode().strip()
+    subprocess.run(['git', 'reset', '--hard', 'HEAD^'], cwd=origin)
+    checkout = tmp_path / 'checkout'
+    subprocess.run(['git', 'clone', origin, checkout])
+    subprocess.run(['git', 'checkout', commit], cwd=checkout)
+    result = get_branch_name(checkout)
+    assert result == '(detached)'
 
 
 def test_html():

@@ -351,7 +351,7 @@ def get_branch_name(repo_path: str) -> str:
             if name.startswith('refs/'):
                 name = name[len('refs/'):]
             if name.startswith('heads/'):
-                name = name[len('remotes/'):]
+                name = name[len('heads/'):]
             elif name.startswith('remotes/'):
                 name = name[len('remotes/'):]
                 if name.startswith('origin/'):
@@ -371,7 +371,7 @@ def get_branch_name(repo_path: str) -> str:
         name = line[2:].strip()
         if name.startswith('origin/'):
             name = name[len('origin/'):]
-        if 'HEAD detached at' not in name:
+        if not name.startswith('HEAD'):
             return name
     return '(detached)'
 
