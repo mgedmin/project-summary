@@ -38,6 +38,7 @@ from summary import (
     VersionColumn,
     format_cmd,
     get_branch_name,
+    get_last_tag,
     get_project_name,
     get_project_owner,
     get_repo_url,
@@ -543,6 +544,15 @@ def test_get_branch_name_stale_detached_head_no_remote_branch(tmp_path):
     subprocess.run(['git', 'checkout', commit], cwd=checkout)
     result = get_branch_name(checkout)
     assert result == '(detached)'
+
+
+def test_get_last_tag(tmp_path):
+    subprocess.run(['git', 'init'], cwd=tmp_path)
+    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
+                    '-m', 'initial'], cwd=tmp_path)
+    subprocess.run(['git', 'tag', '1.0'], cwd=tmp_path)
+    result = get_last_tag(tmp_path)
+    assert result == '1.0'
 
 
 def test_html():
