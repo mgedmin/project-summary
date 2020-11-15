@@ -41,6 +41,7 @@ from summary import (
     get_project_owner,
     get_report_pages,
     github_request,
+    github_request_list,
     html,
     is_cached,
     log_url,
@@ -293,26 +294,45 @@ def test_log_url_cache_hit(caplog):
 class MockSession:
 
     def __init__(self, prototype=None):
-        self.prototype = prototype or MockResponse()
+        if isinstance(prototype, dict):
+            self._prototype = prototype
+        else:
+            self._prototype = {
+                None: prototype or MockResponse()
+            }
 
     def get(self, url):
-        return self.prototype._copy()
+        prototype = self._prototype.get(url)
+        if prototype is None:
+            prototype = self._prototype.get(None)
+        if prototype is None:
+            return MockResponse()
+        return prototype._copy()
 
 
 class MockResponse:
 
-    def __init__(self, status_code=200, text='{}', headers=None):
+    def __init__(self, status_code=200, text=None, *, json=None, headers=None):
         self.status_code = status_code
-        self.text = text
+        if json is not None:
+            self.text = _json_dumps(json)
+        elif text is not None:
+            self.text = text
+        else:
+            self.text = '{}'
         self.headers = {}
         if headers:
             self.headers.update(headers)
 
     def _copy(self):
-        return MockResponse(self.status_code, self.text, self.headers)
+        return MockResponse(
+            status_code=self.status_code, text=self.text, headers=self.headers)
 
     def json(self):
         return json.loads(self.text)
+
+
+_json_dumps = json.dumps
 
 
 def test_github_request():
@@ -328,7 +348,7 @@ def test_github_request_json_error():
 
 
 def test_github_request_error():
-    session = MockSession(MockResponse(400, text='{"message": "oopie wopsie"}'))
+    session = MockSession(MockResponse(400, json={"message": "oopie wopsie"}))
     with pytest.raises(GitHubError):
         github_request('http://example.com/', session)
 
@@ -336,7 +356,7 @@ def test_github_request_error():
 def test_github_request_rate_limit():
     session = MockSession(MockResponse(
         status_code=403,
-        text='{"message": "slow it down pls"}',
+        json={"message": "slow it down pls"},
         headers={
             'X-RateLimit-Remaining': '0',
             'X-RateLimit-Reset': str(int(time.time() + 60)),
@@ -344,6 +364,30 @@ def test_github_request_rate_limit():
     ))
     with pytest.raises(GitHubRateLimitError):
         github_request('http://example.com/', session)
+
+
+def test_github_request_list():
+    session = MockSession(MockResponse(
+        json=[{'a': 2}],
+    ))
+    result = github_request_list('http://example.com/items', session)
+    assert result == [{'a': 2}]
+
+
+def test_github_request_list_pages():
+    session = MockSession({
+        'http://example.com/items?per_page=100': MockResponse(
+            json=[{'a': 2}],
+            headers={
+                'Link': '</items?per_page=100&page=2>; rel="next"',
+            }
+        ),
+        'http://example.com/items?per_page=100&page=2': MockResponse(
+            json=[{'b': 3}],
+        ),
+    })
+    result = github_request_list('http://example.com/items', session)
+    assert result == [{'a': 2}, {'b': 3}]
 
 
 @pytest.mark.parametrize('url, expected', [
