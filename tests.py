@@ -837,6 +837,27 @@ def test_Project_parse_svg_text():
     assert result == 'hello world'
 
 
+def test_Project_appveyor_urls_no_appveyor(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    assert project.appveyor_image_url is None
+    assert project.appveyor_url is None
+
+
+def test_Project_appveyor_urls_github(tmp_path):
+    config = Configuration('/dev/null')
+    config._config.set('project-summary', 'appveyor_account', 'mgedmin')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    project.owner = 'mgedmin'
+    project.name = 'example'
+    project.branch = 'main'
+    project.uses_appveyor = True
+    assert project.appveyor_image_url == 'https://ci.appveyor.com/api/projects/status/github/mgedmin/example?branch=main&svg=true'
+    assert project.appveyor_url == 'https://ci.appveyor.com/project/mgedmin/example/branch/main'
+
+
 def test_html():
     assert html(None, 'foo bar', class_='ignored') == 'foo bar'
     assert html(None, 'foo < bar') == 'foo &lt; bar'
