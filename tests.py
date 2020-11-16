@@ -858,6 +858,26 @@ def test_Project_appveyor_urls_github(tmp_path):
     assert project.appveyor_url == 'https://ci.appveyor.com/project/mgedmin/example/branch/main'
 
 
+def test_Project_appveyor_status_no_appveyor(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    assert project.appveyor_status is None
+
+
+def test_Project_appveyor_status_with_appveyor(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession({
+        'https://example.com/buildstatus.svg': MockResponse(
+            text='<text>success</text>',
+        ),
+    })
+    project = Project(tmp_path, config, session)
+    project.uses_appveyor = True
+    project.appveyor_image_url = 'https://example.com/buildstatus.svg'
+    assert project.appveyor_status == 'success'
+
+
 def test_html():
     assert html(None, 'foo bar', class_='ignored') == 'foo bar'
     assert html(None, 'foo < bar') == 'foo &lt; bar'
