@@ -878,6 +878,26 @@ def test_Project_appveyor_status_with_appveyor(tmp_path):
     assert project.appveyor_status == 'success'
 
 
+def test_Project_coveralls_urls_no_coveralls(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    assert project.coveralls_image_url is None
+    assert project.coveralls_url is None
+
+
+def test_Project_coveralls_urls_github(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    project.owner = 'mgedmin'
+    project.name = 'example'
+    project.branch = 'main'
+    project.uses_travis = True
+    assert project.coveralls_image_url == 'https://coveralls.io/repos/mgedmin/example/badge.svg?branch=main'
+    assert project.coveralls_url == 'https://coveralls.io/r/mgedmin/example?branch=main'
+
+
 def test_html():
     assert html(None, 'foo bar', class_='ignored') == 'foo bar'
     assert html(None, 'foo < bar') == 'foo &lt; bar'
