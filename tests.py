@@ -309,7 +309,7 @@ class MockSession:
                 None: prototype or MockResponse()
             }
 
-    def get(self, url):
+    def get(self, url, allow_redirects=True):
         prototype = self._prototype.get(url)
         if prototype is None:
             prototype = self._prototype.get(None)
@@ -896,6 +896,55 @@ def test_Project_coveralls_urls_github(tmp_path):
     project.uses_travis = True
     assert project.coveralls_image_url == 'https://coveralls.io/repos/mgedmin/example/badge.svg?branch=main'
     assert project.coveralls_url == 'https://coveralls.io/r/mgedmin/example?branch=main'
+
+
+def test_Project_coverage_number_no_coveralls(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession()
+    project = Project(tmp_path, config, session)
+    assert project.coverage_number is None
+
+
+def test_Project_coverage_number_coveralls(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession({
+        'https://example.com/coverage.svg': MockResponse(
+            status_code=302,
+            headers={
+                'Location': 'https://s3.amazonaws.com/assets.coveralls.io/badges/coveralls_42.svg'
+            },
+        ),
+    })
+    project = Project(tmp_path, config, session)
+    project.coveralls_image_url = 'https://example.com/coverage.svg'
+    assert project.coverage_number == 42
+
+
+def test_Project_coverage_number_coverage_unknown(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession({
+        'https://example.com/coverage.svg': MockResponse(
+            status_code=302,
+            headers={
+                'Location': 'https://s3.amazonaws.com/assets.coveralls.io/badges/coveralls_unknown.svg'
+            },
+        ),
+    })
+    project = Project(tmp_path, config, session)
+    project.coveralls_image_url = 'https://example.com/coverage.svg'
+    assert project.coverage_number is None
+
+
+def test_Project_coverage_number_coverage_unavailable(tmp_path):
+    config = Configuration('/dev/null')
+    session = MockSession({
+        'https://example.com/coverage.svg': MockResponse(
+            status_code=500,
+        ),
+    })
+    project = Project(tmp_path, config, session)
+    project.coveralls_image_url = 'https://example.com/coverage.svg'
+    assert project.coverage_number is None
 
 
 def test_html():
