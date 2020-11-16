@@ -864,6 +864,16 @@ def test_Project_coverage_number_coverage_unavailable(project, session):
     assert project.coverage_number is None
 
 
+def test_Project_coverage(project):
+    project.coverage_number = 42
+    assert project.coverage('{}%', 'n/a') == '42%'
+
+
+def test_Project_coverage_unknown(project):
+    project.coverage_number = None
+    assert project.coverage('{}%', 'n/a') == 'n/a'
+
+
 def test_html():
     assert html(None, 'foo bar', class_='ignored') == 'foo bar'
     assert html(None, 'foo < bar') == 'foo &lt; bar'
