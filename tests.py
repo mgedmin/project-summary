@@ -601,31 +601,37 @@ def test_get_supported_python_versions(tmp_path):
     assert result == ['3.8', '3.9']
 
 
-def test_Project_fetch(tmp_path):
+@pytest.fixture
+def config():
     config = Configuration('/dev/null')
+    return config
+
+
+@pytest.fixture
+def session():
     session = MockSession()
+    return session
+
+
+@pytest.fixture
+def project(tmp_path, config, session):
     project = Project(tmp_path, config, session)
+    return project
+
+
+def test_Project_fetch(project):
     project.fetch()
 
 
-def test_Project_pull(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_pull(project):
     project.pull()
 
 
-def test_Project_precompute(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_precompute(project):
     project.precompute(['url'])
 
 
-def test_Project_url(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_url(project):
     assert project.url is None
 
 
@@ -634,10 +640,7 @@ def test_Project_url(tmp_path):
     ('https://git.example.com/example', False),
     ('https://github.com/mgedmin/example', True),
 ])
-def test_Project_is_on_github(tmp_path, url, expected):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_is_on_github(project, url, expected):
     project.url = url
     assert project.is_on_github == expected
 
@@ -646,10 +649,7 @@ def test_Project_is_on_github(tmp_path, url, expected):
     None,
     'https://github.com/mgedmin/example',
 ])
-def test_Project_uses_travis(tmp_path, url):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_uses_travis(project, url):
     project.url = url
     assert not project.uses_travis
 
@@ -658,147 +658,95 @@ def test_Project_uses_travis(tmp_path, url):
     None,
     'https://github.com/mgedmin/example',
 ])
-def test_Project_uses_appveyor(tmp_path, url):
-    config = Configuration('/dev/null')
+def test_Project_uses_appveyor(project, config, url):
     config._config.set('project-summary', 'appveyor_account', 'mgedmin')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
     project.url = url
     assert not project.uses_appveyor
 
 
-def test_Project_uses_jenkins(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_uses_jenkins(project):
     assert not project.uses_jenkins
 
 
-def test_Project_branch(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_branch(project):
     project.branch
 
 
-def test_Project_last_tag(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_last_tag(project):
     project.last_tag
 
 
-def test_Project_last_tag_date(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_last_tag_date(project):
     project.last_tag_date
 
 
-def test_Project_pending_commits(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_pending_commits(project):
     assert project.pending_commits == []
 
 
-def test_Project_owner(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_owner_unknown(project):
     assert not project.owner
 
 
-def test_Project_owner_on_github(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_owner_on_github(project):
     project.url = 'https://github.com/mgedmin/example'
     assert project.owner == 'mgedmin'
 
 
-def test_Project_name_remote(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_name_remote(project):
     project.url = 'https://github.com/mgedmin/example'
     assert project.name == 'example'
 
 
-def test_Project_name_local(tmp_path):
+def test_Project_name_local(tmp_path, config, session):
     proj_path = tmp_path / "proj"
     proj_path.mkdir()
-    config = Configuration('/dev/null')
-    session = MockSession()
     project = Project(proj_path, config, session)
     assert project.name == 'proj'
 
 
-def test_Project_pypi_name_local(tmp_path):
-    proj_path = tmp_path / "proj"
-    proj_path.mkdir()
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(proj_path, config, session)
+def test_Project_pypi_name_local(project):
+    project.name = 'proj'
     assert project.pypi_name == 'proj'
 
 
-def test_Project_pypi_url(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_pypi_url(project):
     project.pypi_name = 'example'
     assert project.pypi_url == 'https://pypi.org/project/example/'
 
 
-def test_Project_jenkins_job(tmp_path):
+def test_Project_jenkins_job(tmp_path, config, session):
     proj_path = tmp_path / "proj"
     proj_path.mkdir()
-    config = Configuration('/dev/null')
-    session = MockSession()
     project = Project(proj_path, config, session)
     assert project.jenkins_job == 'proj'
 
 
-def test_Project_jenkins_job_using_workspace(tmp_path):
+def test_Project_jenkins_job_using_workspace(tmp_path, config, session):
     proj_path = tmp_path / "proj" / "workspace"
     proj_path.mkdir(parents=True)
-    config = Configuration('/dev/null')
-    session = MockSession()
     project = Project(proj_path, config, session)
     assert project.jenkins_job == 'proj'
 
 
-def test_Project_compare_url_default(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_compare_url_default(project):
     project.url = 'https://example.com/project'
     assert project.compare_url is None
 
 
-def test_Project_compare_url_github(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_compare_url_github(project):
     project.url = 'https://github.com/mgedmin/example'
     project.branch = 'main'
     project.last_tag = '1.0'
     assert project.compare_url == 'https://github.com/mgedmin/example/compare/1.0...main'
 
 
-def test_Project_travis_urls_no_travis(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_travis_urls_no_travis(project):
     assert project.travis_image_url is None
     assert project.travis_url is None
 
 
-def test_Project_travis_urls_github(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_travis_urls_github(project):
     project.owner = 'mgedmin'
     project.name = 'example'
     project.branch = 'main'
@@ -807,21 +755,16 @@ def test_Project_travis_urls_github(tmp_path):
     assert project.travis_url == 'https://travis-ci.com/mgedmin/example'
 
 
-def test_Project_travis_status_no_travis(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_travis_status_no_travis(project):
     assert project.travis_status is None
 
 
-def test_Project_travis_status_with_travis(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession({
+def test_Project_travis_status_with_travis(project, session):
+    session._prototype.update({
         'https://example.com/buildstatus.svg': MockResponse(
             text='<text>success</text>',
         ),
     })
-    project = Project(tmp_path, config, session)
     project.uses_travis = True
     project.travis_image_url = 'https://example.com/buildstatus.svg'
     assert project.travis_status == 'success'
@@ -837,19 +780,13 @@ def test_Project_parse_svg_text():
     assert result == 'hello world'
 
 
-def test_Project_appveyor_urls_no_appveyor(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_appveyor_urls_no_appveyor(project):
     assert project.appveyor_image_url is None
     assert project.appveyor_url is None
 
 
-def test_Project_appveyor_urls_github(tmp_path):
-    config = Configuration('/dev/null')
+def test_Project_appveyor_urls_github(project, config):
     config._config.set('project-summary', 'appveyor_account', 'mgedmin')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
     project.owner = 'mgedmin'
     project.name = 'example'
     project.branch = 'main'
@@ -858,38 +795,27 @@ def test_Project_appveyor_urls_github(tmp_path):
     assert project.appveyor_url == 'https://ci.appveyor.com/project/mgedmin/example/branch/main'
 
 
-def test_Project_appveyor_status_no_appveyor(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_appveyor_status_no_appveyor(project):
     assert project.appveyor_status is None
 
 
-def test_Project_appveyor_status_with_appveyor(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession({
+def test_Project_appveyor_status_with_appveyor(project, session):
+    session._prototype.update({
         'https://example.com/buildstatus.svg': MockResponse(
             text='<text>success</text>',
         ),
     })
-    project = Project(tmp_path, config, session)
     project.uses_appveyor = True
     project.appveyor_image_url = 'https://example.com/buildstatus.svg'
     assert project.appveyor_status == 'success'
 
 
-def test_Project_coveralls_urls_no_coveralls(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_coveralls_urls_no_coveralls(project):
     assert project.coveralls_image_url is None
     assert project.coveralls_url is None
 
 
-def test_Project_coveralls_urls_github(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_coveralls_urls_github(project):
     project.owner = 'mgedmin'
     project.name = 'example'
     project.branch = 'main'
@@ -898,16 +824,12 @@ def test_Project_coveralls_urls_github(tmp_path):
     assert project.coveralls_url == 'https://coveralls.io/r/mgedmin/example?branch=main'
 
 
-def test_Project_coverage_number_no_coveralls(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession()
-    project = Project(tmp_path, config, session)
+def test_Project_coverage_number_no_coveralls(project):
     assert project.coverage_number is None
 
 
-def test_Project_coverage_number_coveralls(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession({
+def test_Project_coverage_number_coveralls(project, session):
+    session._prototype.update({
         'https://example.com/coverage.svg': MockResponse(
             status_code=302,
             headers={
@@ -915,14 +837,12 @@ def test_Project_coverage_number_coveralls(tmp_path):
             },
         ),
     })
-    project = Project(tmp_path, config, session)
     project.coveralls_image_url = 'https://example.com/coverage.svg'
     assert project.coverage_number == 42
 
 
-def test_Project_coverage_number_coverage_unknown(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession({
+def test_Project_coverage_number_coverage_unknown(project, session):
+    session._prototype.update({
         'https://example.com/coverage.svg': MockResponse(
             status_code=302,
             headers={
@@ -930,19 +850,16 @@ def test_Project_coverage_number_coverage_unknown(tmp_path):
             },
         ),
     })
-    project = Project(tmp_path, config, session)
     project.coveralls_image_url = 'https://example.com/coverage.svg'
     assert project.coverage_number is None
 
 
-def test_Project_coverage_number_coverage_unavailable(tmp_path):
-    config = Configuration('/dev/null')
-    session = MockSession({
+def test_Project_coverage_number_coverage_unavailable(project, session):
+    session._prototype.update({
         'https://example.com/coverage.svg': MockResponse(
             status_code=500,
         ),
     })
-    project = Project(tmp_path, config, session)
     project.coveralls_image_url = 'https://example.com/coverage.svg'
     assert project.coverage_number is None
 
