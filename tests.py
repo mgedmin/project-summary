@@ -905,6 +905,24 @@ def test_Project_python_versions(project):
     assert project.python_versions == []
 
 
+def test_Project_github_issues_and_pulls_no_github(project):
+    assert project.github_issues_and_pulls == []
+
+
+def test_Project_github_issues_and_pulls_github(project, session):
+    session._prototype.update({
+        'https://api.github.com/repos/mgedmin/project/issues?per_page=100': MockResponse(
+            json=[{'an issue': 'yes very good'}],
+        ),
+    })
+    project.is_on_github = True
+    project.owner = 'mgedmin'
+    project.name = 'project'
+    assert project.github_issues_and_pulls == [
+        {'an issue': 'yes very good'},
+    ]
+
+
 def test_html():
     assert html(None, 'foo bar', class_='ignored') == 'foo bar'
     assert html(None, 'foo < bar') == 'foo &lt; bar'
