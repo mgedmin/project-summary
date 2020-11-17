@@ -7,6 +7,7 @@ import textwrap
 import time
 
 import markupsafe
+import pypistats
 import pytest
 import requests
 import requests_cache
@@ -309,7 +310,7 @@ class MockSession:
                 None: prototype or MockResponse()
             }
 
-    def get(self, url, allow_redirects=True):
+    def get(self, url, allow_redirects=True, headers=None):
         prototype = self._prototype.get(url)
         if prototype is None:
             prototype = self._prototype.get(None)
@@ -338,6 +339,10 @@ class MockResponse:
 
     def json(self):
         return json.loads(self.text)
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise requests.HTTPError(self.status_code)
 
 
 _json_dumps = json.dumps
@@ -608,8 +613,9 @@ def config():
 
 
 @pytest.fixture
-def session():
+def session(monkeypatch):
     session = MockSession()
+    monkeypatch.setattr(requests, 'get', session.get)
     return session
 
 
@@ -973,6 +979,34 @@ def test_Project_pulls_url_gitub(project):
 def test_Project_pypistats_url(project):
     project.pypi_name = 'example'
     assert project.pypistats_url == 'https://pypistats.org/packages/example'
+
+
+def test_Project_downloads(project, tmp_path, monkeypatch, session):
+    monkeypatch.setattr(pypistats, 'CACHE_DIR', tmp_path / 'pypistats-cache')
+    session._prototype.update({
+        'https://pypistats.org/api/packages/example/recent': MockResponse(
+            json={
+                'data': {
+                    'last_month': 42,
+                },
+            },
+        ),
+        None: MockResponse(404),
+    })
+    project.pypi_name = 'example'
+    assert project.downloads == 42
+
+
+def test_Project_downloads_error(project, tmp_path, monkeypatch, session):
+    monkeypatch.setattr(pypistats, 'CACHE_DIR', tmp_path / 'pypistats-cache')
+    session._prototype.update({
+        'https://pypistats.org/api/packages/example/recent': MockResponse(
+            500,
+        ),
+        None: MockResponse(404),
+    })
+    project.pypi_name = 'example'
+    assert project.downloads is None
 
 
 def test_html():
