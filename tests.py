@@ -901,6 +901,10 @@ def test_Project_get_jenkins_status(project, session, config):
     assert project.get_jenkins_status(job) == 'success'
 
 
+def test_Project_python_versions(project):
+    assert project.python_versions == []
+
+
 def test_html():
     assert html(None, 'foo bar', class_='ignored') == 'foo bar'
     assert html(None, 'foo < bar') == 'foo &lt; bar'
