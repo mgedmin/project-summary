@@ -874,14 +874,14 @@ def test_Project_coverage_unknown(project):
     assert project.coverage('{}%', 'n/a') == 'n/a'
 
 
-def test_Jenkins_urls_no_jenkins(project):
+def test_Project_urls_no_jenkins(project):
     job = JenkinsJobConfig()
     assert project.get_jenkins_image_url(job) is None
     assert project.get_jenkins_url(job) is None
     assert project.get_jenkins_status(job) is None
 
 
-def test_Jenkins_urls_jenkins(project, config):
+def test_Project_urls_jenkins(project, config):
     config.jenkins_url = 'http://example.com'
     project.jenkins_job = 'project'
     job = JenkinsJobConfig('{name}-linux')
@@ -889,7 +889,7 @@ def test_Jenkins_urls_jenkins(project, config):
     assert project.get_jenkins_url(job) == 'http://example.com/job/project-linux/'
 
 
-def test_Jenkins_get_jenkins_status(project, session, config):
+def test_Project_get_jenkins_status(project, session, config):
     config.jenkins_url = 'http://example.com'
     project.jenkins_job = 'project'
     job = JenkinsJobConfig()
