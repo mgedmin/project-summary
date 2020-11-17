@@ -878,6 +878,7 @@ def test_Jenkins_urls_no_jenkins(project):
     job = JenkinsJobConfig()
     assert project.get_jenkins_image_url(job) is None
     assert project.get_jenkins_url(job) is None
+    assert project.get_jenkins_status(job) is None
 
 
 def test_Jenkins_urls_jenkins(project, config):
@@ -886,6 +887,18 @@ def test_Jenkins_urls_jenkins(project, config):
     job = JenkinsJobConfig('{name}-linux')
     assert project.get_jenkins_image_url(job) == 'http://example.com/job/project-linux/badge/icon'
     assert project.get_jenkins_url(job) == 'http://example.com/job/project-linux/'
+
+
+def test_Jenkins_get_jenkins_status(project, session, config):
+    config.jenkins_url = 'http://example.com'
+    project.jenkins_job = 'project'
+    job = JenkinsJobConfig()
+    session._prototype.update({
+        'http://example.com/job/project/badge/icon': MockResponse(
+            text='<text>success</text>',
+        ),
+    })
+    assert project.get_jenkins_status(job) == 'success'
 
 
 def test_html():
