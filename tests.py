@@ -923,6 +923,53 @@ def test_Project_github_issues_and_pulls_github(project, session):
     ]
 
 
+def test_Project_github_issues_and_github_pulls(project):
+    project.github_issues_and_pulls = [
+        {'issue': 'this'},
+        {'pull_request': 'that'},
+    ]
+    assert project.github_issues == [{'issue': 'this'}]
+    assert project.github_pulls == [{'pull_request': 'that'}]
+
+
+def test_Project_open_issues_counts(project):
+    project.github_issues = [
+        {'issue': 'this', 'labels': []},
+        {'issue': 'that', 'labels': [{'name': 'bug'}]},
+    ]
+    assert project.open_issues_count == 2
+    assert project.unlabeled_open_issues_count == 1
+
+
+def test_Project_issues_url_no_github(project):
+    assert project.issues_url is None
+
+
+def test_Project_issues_url_gitub(project):
+    project.is_on_github = True
+    project.url = 'https://github.com/mgedmin/example'
+    assert project.issues_url == 'https://github.com/mgedmin/example/issues'
+
+
+def test_Project_open_pulls_counts(project):
+    project.github_pulls = [
+        {'pull_request': 'this', 'labels': []},
+        {'pull_request': 'that', 'labels': [{'name': 'bug'}]},
+    ]
+    assert project.open_pulls_count == 2
+    assert project.unlabeled_open_pulls_count == 1
+
+
+def test_Project_pulls_url_no_github(project):
+    assert project.pulls_url is None
+
+
+def test_Project_pulls_url_gitub(project):
+    project.is_on_github = True
+    project.url = 'https://github.com/mgedmin/example'
+    assert project.pulls_url == 'https://github.com/mgedmin/example/pulls'
+
+
 def test_html():
     assert html(None, 'foo bar', class_='ignored') == 'foo bar'
     assert html(None, 'foo < bar') == 'foo &lt; bar'
