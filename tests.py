@@ -874,6 +874,20 @@ def test_Project_coverage_unknown(project):
     assert project.coverage('{}%', 'n/a') == 'n/a'
 
 
+def test_Jenkins_urls_no_jenkins(project):
+    job = JenkinsJobConfig()
+    assert project.get_jenkins_image_url(job) is None
+    assert project.get_jenkins_url(job) is None
+
+
+def test_Jenkins_urls_jenkins(project, config):
+    config.jenkins_url = 'http://example.com'
+    project.jenkins_job = 'project'
+    job = JenkinsJobConfig('{name}-linux')
+    assert project.get_jenkins_image_url(job) == 'http://example.com/job/project-linux/badge/icon'
+    assert project.get_jenkins_url(job) == 'http://example.com/job/project-linux/'
+
+
 def test_html():
     assert html(None, 'foo bar', class_='ignored') == 'foo bar'
     assert html(None, 'foo < bar') == 'foo &lt; bar'
