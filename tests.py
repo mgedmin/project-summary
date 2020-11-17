@@ -970,6 +970,11 @@ def test_Project_pulls_url_gitub(project):
     assert project.pulls_url == 'https://github.com/mgedmin/example/pulls'
 
 
+def test_Project_pypistats_url(project):
+    project.pypi_name = 'example'
+    assert project.pypistats_url == 'https://pypistats.org/packages/example'
+
+
 def test_html():
     assert html(None, 'foo bar', class_='ignored') == 'foo bar'
     assert html(None, 'foo < bar') == 'foo &lt; bar'
