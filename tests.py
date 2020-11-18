@@ -61,7 +61,9 @@ from summary import (
     normalize_github_url,
     pipe,
     pluralize,
+    print_html_report,
     reify,
+    symlink_assets,
     to_seconds,
 )
 
@@ -1716,3 +1718,13 @@ def test_main_github_error_produces_traceback(tmp_path, monkeypatch, capsys):
         summary.main()
     out, err = capsys.readouterr()
     assert 'Traceback' in err
+
+
+def test_print_html_report(tmp_path, config):
+    projects = []
+    print_html_report(projects, config, tmp_path / 'output.html')
+
+
+def test_symlink_assets(tmp_path):
+    symlink_assets(tmp_path / 'output.html')
+    assert (tmp_path / 'assets' / 'css' / 'bootstrap.css').exists()
