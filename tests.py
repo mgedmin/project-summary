@@ -5,6 +5,7 @@ import subprocess
 import sys
 import textwrap
 import time
+import traceback
 
 import markupsafe
 import pypistats
@@ -1057,6 +1058,18 @@ def test_filter_projects_can_pull(tmp_path, config, session):
     p1 = Project(tmp_path, config, session)
     config.pull = True
     assert list(_filter_projects([p1], config)) == []
+
+
+def test_mako_error_handler():
+    template = Template('''
+      blah blah
+      ${arg + 1}
+    ''')
+    with pytest.raises(TypeError) as ctx:
+        template.render_unicode(arg='a')
+    tb = ''.join(traceback.format_tb(ctx.tb))
+    assert '${arg + 1}' in tb
+    assert 'line 3 in render_body' in tb
 
 
 def test_html():
