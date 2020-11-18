@@ -414,6 +414,9 @@ class Project:
         self.config = config
         self.session = session
 
+    def __repr__(self):
+        return f'<Project {self.name!r}>'
+
     def _http_get(self, url: str, **kwargs) -> requests.Response:
         log_url(url, self.session)
         return self.session.get(url, **kwargs)
@@ -701,8 +704,13 @@ class Project:
 
 @collect
 def get_projects(config: Configuration, session: requests.Session) -> Iterable[Project]:
-    for path in get_repos(config):
-        p = Project(path, config, session)
+    return _filter_projects((
+        Project(path, config, session) for path in get_repos(config)
+    ), config)
+
+
+def _filter_projects(projects: Iterable[Project], config: Configuration) -> Iterable[Project]:
+    for p in projects:
         if p.name in config.ignore:
             continue
         if config.skip_branches and p.branch != 'master':

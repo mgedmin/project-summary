@@ -38,6 +38,7 @@ from summary import (
     Template,
     TravisColumn,
     VersionColumn,
+    _filter_projects,
     format_cmd,
     get_branch_name,
     get_date_of_tag,
@@ -45,6 +46,7 @@ from summary import (
     get_pending_commits,
     get_project_name,
     get_project_owner,
+    get_projects,
     get_repo_url,
     get_report_pages,
     get_repos,
@@ -403,9 +405,8 @@ def test_github_request_list_pages():
     assert result == [{'a': 2}, {'b': 3}]
 
 
-def test_get_repos(tmp_path):
+def test_get_repos(tmp_path, config):
     (tmp_path / 'a' / '.git').mkdir(parents=True)
-    config = Configuration('/dev/null')
     config._config.set('project-summary', 'projects', str(tmp_path / '*'))
     assert get_repos(config) == [str(tmp_path / 'a')]
 
@@ -623,6 +624,10 @@ def session(monkeypatch):
 def project(tmp_path, config, session):
     project = Project(tmp_path, config, session)
     return project
+
+
+def test_Project_repr(project):
+    repr(project)
 
 
 def test_Project_fetch(project):
@@ -1007,6 +1012,51 @@ def test_Project_downloads_error(project, tmp_path, monkeypatch, session):
     })
     project.pypi_name = 'example'
     assert project.downloads is None
+
+
+def test_get_projects(tmp_path, config, session):
+    proj = (tmp_path / 'a')
+    subprocess.run(['git', 'init', proj])
+    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
+                    '-m', 'a'], cwd=proj)
+    subprocess.run(['git', 'tag', '1.0'], cwd=proj)
+    config._config.set('project-summary', 'projects', str(tmp_path / '*'))
+    projects = get_projects(config, session)
+    assert [p.name for p in projects] == ['a']
+
+
+def test_filter_projects_can_skip_names(tmp_path, config, session):
+    p1 = Project(tmp_path, config, session)
+    p1.name = 'a'
+    p1.last_tag = '0.1'
+    p2 = Project(tmp_path, config, session)
+    p2.name = 'b'
+    p2.last_tag = '0.2'
+    config.ignore = ['a']
+    assert list(_filter_projects([p1, p2], config)) == [p2]
+
+
+def test_filter_projects_can_skip_branches(tmp_path, config, session):
+    p1 = Project(tmp_path, config, session)
+    p1.branch = 'master'
+    p1.last_tag = '0.1'
+    p2 = Project(tmp_path, config, session)
+    p2.branch = 'devel'
+    p1.last_tag = '0.2'
+    config.skip_branches = True
+    assert list(_filter_projects([p1, p2], config)) == [p1]
+
+
+def test_filter_projects_can_fetch(tmp_path, config, session):
+    p1 = Project(tmp_path, config, session)
+    config.fetch = True
+    assert list(_filter_projects([p1], config)) == []
+
+
+def test_filter_projects_can_pull(tmp_path, config, session):
+    p1 = Project(tmp_path, config, session)
+    config.pull = True
+    assert list(_filter_projects([p1], config)) == []
 
 
 def test_html():
