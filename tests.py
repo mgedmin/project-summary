@@ -1660,3 +1660,59 @@ def test_main_help(monkeypatch):
     monkeypatch.setattr(sys, 'argv', ['summary', '--help'])
     with pytest.raises(SystemExit):
         summary.main()
+
+
+def test_main(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sys, 'argv', [
+        'summary',
+    ])
+    summary.main()
+
+
+def test_main_html(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sys, 'argv', [
+        'summary', '--html', '-v', '--symlink-assets',
+    ])
+    summary.main()
+
+
+def test_main_warn_output_file_ignored(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sys, 'argv', [
+        'summary', '-o', 'output.txt',
+    ])
+    summary.main()
+    assert '--output-file ignored' in capsys.readouterr().out
+
+
+def _raise(exc):
+    def fn(*a, **kw):
+        raise exc
+    return fn
+
+
+def test_main_github_error_produces_no_traceback(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sys, 'argv', [
+        'summary', '--html',
+    ])
+    monkeypatch.setattr(summary, 'print_html_report', _raise(GitHubError))
+    with pytest.raises(SystemExit):
+        summary.main()
+    out, err = capsys.readouterr()
+    assert 'Traceback' not in out
+    assert 'Traceback' not in err
+
+
+def test_main_github_error_produces_traceback(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sys, 'argv', [
+        'summary', '--html',
+    ])
+    monkeypatch.setattr(summary, 'print_html_report', _raise(Exception))
+    with pytest.raises(SystemExit):
+        summary.main()
+    out, err = capsys.readouterr()
+    assert 'Traceback' in err
