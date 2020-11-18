@@ -62,6 +62,7 @@ from summary import (
     pipe,
     pluralize,
     print_html_report,
+    print_report,
     reify,
     symlink_assets,
     to_seconds,
@@ -1718,6 +1719,12 @@ def test_main_github_error_produces_traceback(tmp_path, monkeypatch, capsys):
         summary.main()
     out, err = capsys.readouterr()
     assert 'Traceback' in err
+
+
+def test_print_report(project):
+    project.last_tag = '0.1'
+    project.last_tag_date = '2020-05-30 11:15:25 +0300'
+    print_report([project], verbose=2)
 
 
 def test_print_html_report(tmp_path, config):
