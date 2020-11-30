@@ -134,6 +134,7 @@ class Configuration(object):
         skip-branches = False
         fetch = False
         pull = False
+        gha-workflow-name = build
         appveyor-account =
         jenkins-url =
         jenkins-jobs = {name}
@@ -169,6 +170,10 @@ class Configuration(object):
     @reify
     def pull(self) -> bool:
         return self._config.getboolean('project-summary', 'pull')
+
+    @reify
+    def gha_workflow_name(self) -> str:
+        return self._config.get('project-summary', 'gha-workflow-name')
 
     @reify
     def appveyor_account(self) -> str:
@@ -443,6 +448,12 @@ class Project:
         return self.url.startswith('https://github.com/')
 
     @reify
+    def uses_github_actions(self) -> bool:
+        if not self.is_on_github:
+            return False
+        return bool(glob.glob(os.path.join(self.working_tree, '.github', 'workflows', '*.yml')))
+
+    @reify
     def uses_travis(self) -> bool:
         if not self.is_on_github:
             return False
@@ -512,6 +523,31 @@ class Project:
         return '{base}/compare/{tag}...{branch}'.format(base=self.url,
                                                         branch=self.branch,
                                                         tag=self.last_tag)
+
+    @reify
+    def github_actions_image_url(self) -> Optional[str]:
+        if not self.uses_github_actions:
+            return None
+        # I'm using a fixed workflow name for now, but it should be possible
+        # to dig it out from the YAML file (the top-level `name` key).
+        template = 'https://github.com/{owner}/{name}/workflows/{gha_workflow_name}/badge.svg?branch={branch}'
+        return template.format(name=self.name, owner=self.owner, branch=self.branch,
+                               gha_workflow_name=self.config.gha_workflow_name)
+
+    @reify
+    def github_actions_url(self) -> Optional[str]:
+        if not self.uses_github_actions:
+            return None
+        return 'https://github.com/{owner}/{name}/actions'.format(name=self.name,
+                                                                  owner=self.owner)
+
+    @reify
+    def github_actions_status(self) -> Optional[str]:
+        if not self.uses_github_actions:
+            return None
+        assert self.github_actions_image_url is not None
+        res = self._http_get(self.github_actions_image_url)
+        return self._parse_svg_text(res.text, skip_words={self.config.gha_workflow_name})
 
     @reify
     def travis_image_url(self) -> Optional[str]:
@@ -1038,6 +1074,37 @@ class StatusColumn(Column):
         raise NotImplementedError
 
 
+class BuildStatusColumn(StatusColumn):
+    title = 'Build status'
+    title_narrow = 'Build status'
+
+    def get_status(self, project: Project) -> StatusTuple:
+        if project.uses_github_actions:
+            return StatusTuple(
+                project.github_actions_url,
+                project.github_actions_image_url,
+                project.github_actions_status,
+            )
+        else:
+            return StatusTuple(
+                project.travis_url,
+                project.travis_image_url,
+                project.travis_status,
+            )
+
+
+class GitHubActionsColumn(StatusColumn):
+    title = 'GitHub Actions'
+    title_narrow = 'GHA status'
+
+    def get_status(self, project: Project) -> StatusTuple:
+        return StatusTuple(
+            project.github_actions_url,
+            project.github_actions_image_url,
+            project.github_actions_status,
+        )
+
+
 class TravisColumn(StatusColumn):
     title = 'Travis CI'
     title_narrow = 'Travis CI status'
@@ -1215,10 +1282,11 @@ def get_report_pages(config: Configuration) -> Pages:
             VersionColumn(),
             DateColumn(align='right'),
             ChangesColumn(align='right'),
-            TravisColumn('Build status', align='right'),
+            BuildStatusColumn(align='right'),
         ]),
         Page('Maintenance', [
             NameColumn(width='15%'),
+            GitHubActionsColumn(width='15%'),
             TravisColumn(width='15%'),
             *(JenkinsColumn(job, width='15%') for job in config.jenkins_jobs),
             AppveyorColumn(width="15%"),

@@ -169,6 +169,7 @@ def test_Configuration_defaults():
     assert cfg.skip_branches is False
     assert cfg.fetch is False
     assert cfg.pull is False
+    assert cfg.gha_workflow_name == 'build'
     assert cfg.appveyor_account == ''
     assert cfg.jenkins_url == ''
     assert cfg.jenkins_jobs == []
@@ -656,6 +657,15 @@ def test_Project_is_on_github(project, url, expected):
     None,
     'https://github.com/mgedmin/example',
 ])
+def test_Project_uses_github_actions(project, url):
+    project.url = url
+    assert not project.uses_github_actions
+
+
+@pytest.mark.parametrize("url", [
+    None,
+    'https://github.com/mgedmin/example',
+])
 def test_Project_uses_travis(project, url):
     project.url = url
     assert not project.uses_travis
@@ -746,6 +756,35 @@ def test_Project_compare_url_github(project):
     project.branch = 'main'
     project.last_tag = '1.0'
     assert project.compare_url == 'https://github.com/mgedmin/example/compare/1.0...main'
+
+
+def test_Project_github_actions_urls_no_github_actions(project):
+    assert project.github_actions_image_url is None
+    assert project.github_actions_url is None
+
+
+def test_Project_github_actions_urls_github(project):
+    project.owner = 'mgedmin'
+    project.name = 'example'
+    project.branch = 'main'
+    project.uses_github_actions = True
+    assert project.github_actions_image_url == 'https://github.com/mgedmin/example/workflows/build/badge.svg?branch=main'
+    assert project.github_actions_url == 'https://github.com/mgedmin/example/actions'
+
+
+def test_Project_github_actions_status_no_github_actions(project):
+    assert project.github_actions_status is None
+
+
+def test_Project_github_actions_status_with_github_actions(project, session):
+    session._prototype.update({
+        'https://example.com/buildstatus.svg': MockResponse(
+            text='<text>success</text>',
+        ),
+    })
+    project.uses_github_actions = True
+    project.github_actions_image_url = 'https://example.com/buildstatus.svg'
+    assert project.github_actions_status == 'success'
 
 
 def test_Project_travis_urls_no_travis(project):
