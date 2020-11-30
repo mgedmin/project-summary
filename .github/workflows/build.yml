@@ -12,9 +12,12 @@ on:
   schedule:
     - cron: "0 5 * * 6"  # 5:00 UTC every Saturday
 
+env:
+  default_python: "3.9"
+
 jobs:
   build:
-    name: Python ${{ matrix.python-version }}, TOXENV=${{ matrix.toxenv }}
+    name: ${{ matrix.toxenv || matrix.python-version }}
     runs-on: ubuntu-latest
 
     strategy:
@@ -25,7 +28,6 @@ jobs:
           - "3.8"
           - "3.9"
           - "pypy3"
-        toxenv: ["py"]
         include:
           - toxenv: flake8
           - toxenv: mypy
@@ -38,17 +40,18 @@ jobs:
       - name: Git clone
         uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python ${{ matrix.python-version || env.default_python }}
         uses: actions/setup-python@v2
         with:
-          python-version: "${{ matrix.python-version }}"
+          python-version: ${{ matrix.python-version || env.default_python  }}
 
       - name: Pip cache
         uses: actions/cache@v2
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('tox.ini', 'setup.py') }}
+          key: ${{ runner.os }}-pip-${{ matrix.python-version || matrix.toxenv }}-${{ hashFiles('tox.ini', 'setup.py') }}
           restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version || matrix.toxenv }}-
             ${{ runner.os }}-pip-
 
       - name: Install dependencies
@@ -58,4 +61,4 @@ jobs:
           python -m pip install -U tox
 
       - name: Run tests
-        run: python -m tox -e ${{ matrix.toxenv }}
+        run: python -m tox -e ${{ matrix.toxenv || "py" }}
