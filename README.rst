@@ -1,8 +1,8 @@
 Project Overview
 ================
 
-.. image:: https://travis-ci.com/mgedmin/project-summary.svg?branch=master
-    :target: https://travis-ci.com/mgedmin/project-summary
+.. image:: https://github.com/mgedmin/project-summary/workflows/build/badge.svg?branch=master
+    :target: https://github.com/mgedmin/project-summary/actions
 
 I maintain a bunch of Open Source projects.  Most of them in Python.
 Most of them on GitHub.
