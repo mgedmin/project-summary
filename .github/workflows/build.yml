@@ -25,7 +25,7 @@ jobs:
           - "3.8"
           - "3.9"
           - "pypy3"
-        toxenv: "py"
+        toxenv: ["py"]
         include:
           - toxenv: flake8
           - toxenv: mypy
