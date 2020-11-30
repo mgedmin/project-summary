@@ -94,5 +94,5 @@ jobs:
           python -m pip install -U setuptools wheel
           python -m pip install -U tox
 
-      - name: Run tests
+      - name: Run ${{ matrix.toxenv }}
         run: python -m tox -e ${{ matrix.toxenv }}
