@@ -16,6 +16,7 @@ import requests_cache
 import summary
 from summary import (
     AppveyorColumn,
+    BuildStatusColumn,
     CSS,
     ChangesColumn,
     Column,
@@ -23,6 +24,7 @@ from summary import (
     CoverallsColumn,
     DataColumn,
     DateColumn,
+    GitHubActionsColumn,
     GitHubError,
     GitHubRateLimitError,
     IssuesColumn,
@@ -1491,6 +1493,40 @@ def test_StatusColumn_get_status_is_an_abstract_method():
     column = StatusColumn()
     with pytest.raises(NotImplementedError):
         column.get_status(project)
+
+
+def test_BuildStatusColumn_get_status_gha():
+    project = FakeProject(
+        uses_github_actions=True,
+        uses_travis=False,
+        github_actions_url='/status',
+        github_actions_image_url='/status.svg',
+        github_actions_status='unknown',
+    )
+    column = BuildStatusColumn()
+    assert column.get_status(project) == ('/status', '/status.svg', 'unknown')
+
+
+def test_BuildStatusColumn_get_status_travis():
+    project = FakeProject(
+        uses_github_actions=False,
+        uses_travis=True,
+        travis_url='/status',
+        travis_image_url='/status.svg',
+        travis_status='unknown',
+    )
+    column = BuildStatusColumn()
+    assert column.get_status(project) == ('/status', '/status.svg', 'unknown')
+
+
+def test_GitHubActionsColumn_get_status():
+    project = FakeProject(
+        github_actions_url='/status',
+        github_actions_image_url='/status.svg',
+        github_actions_status='unknown',
+    )
+    column = GitHubActionsColumn()
+    assert column.get_status(project) == ('/status', '/status.svg', 'unknown')
 
 
 def test_TravisColumn_get_status():
