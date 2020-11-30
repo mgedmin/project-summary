@@ -466,18 +466,23 @@ def test_get_project_name():
     assert result == 'project-summary'
 
 
+def git_commit(path, *args):
+    subprocess.run([
+        'git', '-c', 'user.name=nobody', '-c', 'user.email=nobody@localhost',
+        'commit', '--allow-empty',
+    ] + list(args), cwd=path)
+
+
 def test_get_branch_name(tmp_path):
     subprocess.run(['git', 'init'], cwd=tmp_path)
-    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
-                    '-m', 'initial'], cwd=tmp_path)
+    git_commit(tmp_path, '-m', 'initial')
     result = get_branch_name(tmp_path)
     assert result == 'master'
 
 
 def test_get_branch_name_detached_head(tmp_path):
     subprocess.run(['git', 'init'], cwd=tmp_path)
-    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
-                    '-m', 'initial'], cwd=tmp_path)
+    git_commit(tmp_path, '-m', 'initial')
     commit = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=tmp_path,
                             stdout=subprocess.PIPE).stdout.decode().strip()
     subprocess.run(['git', 'checkout', commit], cwd=tmp_path)
@@ -488,8 +493,7 @@ def test_get_branch_name_detached_head(tmp_path):
 def test_get_branch_name_detached_head_from_remote(tmp_path):
     origin = tmp_path / 'origin'
     subprocess.run(['git', 'init', origin])
-    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
-                    '-m', 'initial'], cwd=origin)
+    git_commit(origin, '-m', 'initial')
     checkout = tmp_path / 'checkout'
     subprocess.run(['git', 'clone', origin, checkout])
     commit = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=checkout,
@@ -501,11 +505,9 @@ def test_get_branch_name_detached_head_from_remote(tmp_path):
 
 def test_get_branch_name_detached_head_different_branch(tmp_path):
     subprocess.run(['git', 'init'], cwd=tmp_path)
-    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
-                    '-m', 'initial'], cwd=tmp_path)
+    git_commit(tmp_path, '-m', 'initial')
     subprocess.run(['git', 'checkout', '-b', 'feature'], cwd=tmp_path)
-    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
-                    '-m', 'blabla'], cwd=tmp_path)
+    git_commit(tmp_path, '-m', 'blabla')
     commit = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=tmp_path,
                             stdout=subprocess.PIPE).stdout.decode().strip()
     subprocess.run(['git', 'checkout', commit], cwd=tmp_path)
@@ -516,12 +518,10 @@ def test_get_branch_name_detached_head_different_branch(tmp_path):
 def test_get_branch_name_stale_detached_head(tmp_path):
     origin = tmp_path / 'origin'
     subprocess.run(['git', 'init', origin])
-    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
-                    '-m', 'initial'], cwd=origin)
+    git_commit(origin, '-m', 'initial')
     commit = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=origin,
                             stdout=subprocess.PIPE).stdout.decode().strip()
-    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
-                    '-m', 'blabla'], cwd=origin)
+    git_commit(origin, '-m', 'blabla')
     checkout = tmp_path / 'checkout'
     subprocess.run(['git', 'clone', origin, checkout])
     subprocess.run(['git', 'checkout', commit], cwd=checkout)
@@ -531,10 +531,8 @@ def test_get_branch_name_stale_detached_head(tmp_path):
 
 def test_get_branch_name_stale_detached_head_no_branch(tmp_path):
     subprocess.run(['git', 'init'], cwd=tmp_path)
-    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
-                    '-m', 'initial'], cwd=tmp_path)
-    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
-                    '-m', 'blabla'], cwd=tmp_path)
+    git_commit(tmp_path, '-m', 'initial')
+    git_commit(tmp_path, '-m', 'blabla')
     commit = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=tmp_path,
                             stdout=subprocess.PIPE).stdout.decode().strip()
     subprocess.run(['git', 'reset', '--hard', 'HEAD^'], cwd=tmp_path)
@@ -546,10 +544,8 @@ def test_get_branch_name_stale_detached_head_no_branch(tmp_path):
 def test_get_branch_name_stale_detached_head_no_remote_branch(tmp_path):
     origin = tmp_path / 'origin'
     subprocess.run(['git', 'init', origin])
-    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
-                    '-m', 'initial'], cwd=origin)
-    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
-                    '-m', 'blabla'], cwd=origin)
+    git_commit(origin, '-m', 'initial')
+    git_commit(origin, '-m', 'blabla')
     commit = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=origin,
                             stdout=subprocess.PIPE).stdout.decode().strip()
     subprocess.run(['git', 'reset', '--hard', 'HEAD^'], cwd=origin)
@@ -562,8 +558,7 @@ def test_get_branch_name_stale_detached_head_no_remote_branch(tmp_path):
 
 def test_get_last_tag(tmp_path):
     subprocess.run(['git', 'init'], cwd=tmp_path)
-    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
-                    '-m', 'initial'], cwd=tmp_path)
+    git_commit(tmp_path, '-m', 'initial')
     subprocess.run(['git', 'tag', '1.0'], cwd=tmp_path)
     result = get_last_tag(tmp_path)
     assert result == '1.0'
@@ -571,8 +566,7 @@ def test_get_last_tag(tmp_path):
 
 def test_get_date_of_tag(tmp_path):
     subprocess.run(['git', 'init'], cwd=tmp_path)
-    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
-                    '-m', 'initial'], cwd=tmp_path)
+    git_commit(tmp_path, '-m', 'initial')
     before = time.strftime('%Y-%m-%d %H:%M:%S %z')
     subprocess.run(['git', 'tag', '1.0'], cwd=tmp_path)
     after = time.strftime('%Y-%m-%d %H:%M:%S %z')
@@ -583,11 +577,9 @@ def test_get_date_of_tag(tmp_path):
 def test_get_pending_commits(tmp_path):
     origin = tmp_path / 'origin'
     subprocess.run(['git', 'init', origin])
-    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
-                    '-m', 'initial'], cwd=origin)
+    git_commit(origin, '-m', 'initial')
     subprocess.run(['git', 'tag', '1.0'], cwd=origin)
-    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
-                    '-m', 'a'], cwd=origin)
+    git_commit(origin, '-m', 'a')
     commit = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=origin,
                             stdout=subprocess.PIPE).stdout.decode().strip()
     checkout = tmp_path / 'checkout'
@@ -1021,8 +1013,7 @@ def test_Project_downloads_error(project, tmp_path, monkeypatch, session):
 def test_get_projects(tmp_path, config, session):
     proj = (tmp_path / 'a')
     subprocess.run(['git', 'init', proj])
-    subprocess.run(['git', '-c', 'user.email=nobody@localhost', 'commit', '--allow-empty',
-                    '-m', 'a'], cwd=proj)
+    git_commit(proj, '-m', 'a')
     subprocess.run(['git', 'tag', '1.0'], cwd=proj)
     config._config.set('project-summary', 'projects', str(tmp_path / '*'))
     projects = get_projects(config, session)
