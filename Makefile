@@ -11,13 +11,12 @@ help:                                   ##: describe available make targets
 	@grep -E -e '^[a-zA-Z_-]+:.*?##: .*$$' -e '^##:' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":[^#]*##: "}; /^##:/ {printf "\n"} /^[^#]/ {printf "%s\033[36m%-$(HELP_WIDTH)s\033[0m%s%s\n", $(HELP_INDENT), $(HELP_PREFIX) $$1, $(HELP_SEPARATOR), $$2}'
 
 .PHONY: test
-test: bin/pytest bin/summary            ##: run tests
-	bin/pytest
+test:                                   ##: run tests
+	tox -p auto
 
-.PHONY: test
-coverage: bin/pytest bin/coverage bin/summary   ##: measure test coverage
-	bin/coverage run -m pytest
-	bin/coverage report -m
+.PHONY: coverage
+coverage:                               ##: measure test coverage
+	tox -e coverage
 
 .PHONY: clean
 clean:                                  ##: remove build artifacts
@@ -34,14 +33,6 @@ bin/pip: | bin
 	python3 -m venv .env
 	.env/bin/pip install wheel
 	ln -sfr .env/bin/pip bin/
-
-bin/pytest: | bin/pip
-	bin/pip install pytest
-	ln -sfr .env/bin/pytest bin/
-
-bin/coverage: | bin/pip
-	bin/pip install coverage
-	ln -sfr .env/bin/coverage bin/
 
 bin/bower: | bin
 	npm install bower
