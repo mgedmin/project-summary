@@ -14,7 +14,7 @@ on:
 
 jobs:
   build:
-    name: Python ${{ matrix.python-version }}
+    name: Python ${{ matrix.python-version }}, TOXENV=${{ matrix.toxenv }}
     runs-on: ubuntu-latest
 
     strategy:
