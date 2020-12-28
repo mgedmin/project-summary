@@ -609,7 +609,7 @@ class Project:
 
     @reify
     def coveralls_image_url(self) -> Optional[str]:
-        if not self.uses_travis:
+        if not self.uses_travis and not self.uses_github_actions:
             return None
         # 18px-high PNG
         # template = 'https://coveralls.io/repos/{owner}/{name}/badge.png?branch=master'
