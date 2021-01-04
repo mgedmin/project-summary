@@ -621,7 +621,7 @@ class Project:
 
     @reify
     def coveralls_url(self) -> Optional[str]:
-        if not self.uses_travis:
+        if not self.uses_travis and not self.uses_github_actions:
             return None
         return 'https://coveralls.io/r/{owner}/{name}?branch={branch}'.format(
             name=self.name, owner=self.owner, branch=self.branch)
