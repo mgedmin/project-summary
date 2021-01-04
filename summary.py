@@ -460,6 +460,10 @@ class Project:
         return os.path.exists(os.path.join(self.working_tree, '.travis.yml'))
 
     @reify
+    def uses_coveralls(self) -> bool:
+        return self.uses_travis or self.uses_github_actions
+
+    @reify
     def uses_appveyor(self) -> bool:
         if not self.is_on_github or not self.config.appveyor_account:
             return False
@@ -609,7 +613,7 @@ class Project:
 
     @reify
     def coveralls_image_url(self) -> Optional[str]:
-        if not self.uses_travis and not self.uses_github_actions:
+        if not self.uses_coveralls:
             return None
         # 18px-high PNG
         # template = 'https://coveralls.io/repos/{owner}/{name}/badge.png?branch=master'
@@ -621,7 +625,7 @@ class Project:
 
     @reify
     def coveralls_url(self) -> Optional[str]:
-        if not self.uses_travis and not self.uses_github_actions:
+        if not self.uses_coveralls:
             return None
         return 'https://coveralls.io/r/{owner}/{name}?branch={branch}'.format(
             name=self.name, owner=self.owner, branch=self.branch)
