@@ -71,6 +71,110 @@ from summary import (
 )
 
 
+TRAVIS_STATUS_ICON_BUILD_PASSING = (
+    '<svg xmlns="http://www.w3.org/2000/svg" width="90" height="20">'
+    '<linearGradient id="a" x2="0" y2="100%">'
+    '<stop offset="0" stop-color="#bbb" stop-opacity=".1"/>'
+    '<stop offset="1" stop-opacity=".1"/>'
+    '</linearGradient>'
+    '<rect rx="3" width="90" height="20" fill="#555"/>'
+    '<rect rx="3" x="37" width="53" height="20" fill="#4c1"/>'
+    '<path fill="#4c1" d="M37 0h4v20h-4z"/>'
+    '<rect rx="3" width="90" height="20" fill="url(#a)"/>'
+    '<g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">'
+    '<text x="19.5" y="15" fill="#010101" fill-opacity=".3">build</text>'
+    '<text x="19.5" y="14">build</text>'
+    '<text x="62.5" y="15" fill="#010101" fill-opacity=".3">passing</text>'
+    '<text x="62.5" y="14">passing</text>'
+    '</g>'
+    '</svg>'
+)
+
+APPVEYOR_STATUS_ICON_BUILD_PASSING = '''\
+<svg xmlns="http://www.w3.org/2000/svg" width="106" height="20" style="shape-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd">
+  <linearGradient id="b" x2="0" y2="100%">
+    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+    <stop offset="1" stop-opacity=".1"/>
+  </linearGradient>
+  <mask id="a">
+    <rect width="106" height="20" rx="3" fill="#fff"/>
+  </mask>
+  <g mask="url(#a)">
+    <path fill="#555" d="M0 0h53v20H0z"/>
+    <path fill="#4c1" d="M53 0h84v20H53z"/>
+    <path fill="url(#b)" d="M0 0h106v20H0z"/>
+  </g>
+  <g transform="matrix(0.045,0,0,0.045,0,1.0227272)">
+    <path fill="#ccc" d="M242 48c86,0 155,69 155,154 0,86 -69,155 -155,155 -85,0 -154,-69 -154,-155 0,-85 69,-154 154,-154zm38 184c-17,22 -48,26 -69,9 -21,-16 -24,-47 -7,-69 18,-21 49,-25 70,-9 21,17 24,48 6,69zm-82 101l59 -57c-22,5 -45,1 -63,-14 -21,-16 -30,-43 -27,-68l-53 58c0,0 -7,-13 -9,-37l93 -73c28,-20 66,-21 93,0 30,24 36,68 14,101l-68 97c-10,0 -30,-3 -39,-7z"/>
+  </g>
+  <g fill="#fff" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+
+    <text x="22" y="15" fill="#010101" fill-opacity=".3">build</text>
+    <text x="22" y="14">build</text>
+
+    <text x="58" y="15" fill="#010101" fill-opacity=".3">passing</text>
+    <text x="58" y="14">passing</text>
+  </g>
+</svg>
+'''
+
+JENKINS_STATUS_ICON_BUILD_PASSING = '''\
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="110.0" height="20">
+    <linearGradient id="a" x2="0" y2="100%">
+        <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+        <stop offset="1" stop-opacity=".1"/>
+    </linearGradient>
+    <rect rx="3" width="110.0" height="20" fill="#555"/>
+    <rect rx="0" x="47.0" width="4" height="20" fill="#44cc11"/>
+    <rect rx="3" x="47.0" width="63.0" height="20" fill="#44cc11"/>
+    <rect rx="3" width="110.0" height="20" fill="url(#a)"/>
+    <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
+        <text x="24.5" y="15" fill="#010101" fill-opacity=".3">build</text>
+        <text x="24.5" y="14">build</text>
+        <text x="77.5" y="15" fill="#010101" fill-opacity=".3">passing</text>
+        <text x="77.5" y="14">passing</text>
+    </g>
+</svg>
+'''
+
+GHA_STATUS_ICON_BUILD_PASSING = '''\
+<svg xmlns="http://www.w3.org/2000/svg" width="104" height="20">
+  <defs>
+    <linearGradient id="workflow-fill" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop stop-color="#444D56" offset="0%"></stop>
+      <stop stop-color="#24292E" offset="100%"></stop>
+    </linearGradient>
+    <linearGradient id="state-fill" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop stop-color="#34D058" offset="0%"></stop>
+      <stop stop-color="#28A745" offset="100%"></stop>
+    </linearGradient>
+  </defs>
+  <g fill="none" fill-rule="evenodd">
+    <g font-family="&#39;DejaVu Sans&#39;,Verdana,Geneva,sans-serif" font-size="11">
+      <path id="workflow-bg" d="M0,3 C0,1.3431 1.3552,0 3.02702703,0 L54,0 L54,20 L3.02702703,20 C1.3552,20 0,18.6569 0,17 L0,3 Z" fill="url(#workflow-fill)" fill-rule="nonzero"></path>
+      <text fill="#010101" fill-opacity=".3">
+        <tspan x="22.1981982" y="15">build</tspan>
+      </text>
+      <text fill="#FFFFFF">
+        <tspan x="22.1981982" y="14">build</tspan>
+      </text>
+    </g>
+    <g transform="translate(54)" font-family="&#39;DejaVu Sans&#39;,Verdana,Geneva,sans-serif" font-size="11">
+      <path d="M0 0h46.939C48.629 0 50 1.343 50 3v14c0 1.657-1.37 3-3.061 3H0V0z" id="state-bg" fill="url(#state-fill)" fill-rule="nonzero"></path>
+      <text fill="#010101" fill-opacity=".3">
+        <tspan x="4" y="15">passing</tspan>
+      </text>
+      <text fill="#FFFFFF">
+        <tspan x="4" y="14">passing</tspan>
+      </text>
+    </g>
+    <path fill="#959DA5" d="M11 3c-3.868 0-7 3.132-7 7a6.996 6.996 0 0 0 4.786 6.641c.35.062.482-.148.482-.332 0-.166-.01-.718-.01-1.304-1.758.324-2.213-.429-2.353-.822-.079-.202-.42-.823-.717-.99-.245-.13-.595-.454-.01-.463.552-.009.946.508 1.077.718.63 1.058 1.636.76 2.039.577.061-.455.245-.761.446-.936-1.557-.175-3.185-.779-3.185-3.456 0-.762.271-1.392.718-1.882-.07-.175-.315-.892.07-1.855 0 0 .586-.183 1.925.718a6.5 6.5 0 0 1 1.75-.236 6.5 6.5 0 0 1 1.75.236c1.338-.91 1.925-.718 1.925-.718.385.963.14 1.68.07 1.855.446.49.717 1.112.717 1.882 0 2.686-1.636 3.28-3.194 3.456.254.219.473.639.473 1.295 0 .936-.009 1.689-.009 1.925 0 .184.131.402.481.332A7.011 7.011 0 0 0 18 10c0-3.867-3.133-7-7-7z"></path>
+  </g>
+</svg>
+'''
+
+
 class SomethingThatUsesReify:
 
     computations = 0
@@ -781,12 +885,12 @@ def test_Project_github_actions_status_no_github_actions(project):
 def test_Project_github_actions_status_with_github_actions(project, session):
     session._prototype.update({
         'https://example.com/buildstatus.svg': MockResponse(
-            text='<text>success</text>',
+            text=GHA_STATUS_ICON_BUILD_PASSING,
         ),
     })
     project.uses_github_actions = True
     project.github_actions_image_url = 'https://example.com/buildstatus.svg'
-    assert project.github_actions_status == 'success'
+    assert project.github_actions_status == 'passing'
 
 
 def test_Project_travis_urls_no_travis(project):
@@ -810,20 +914,23 @@ def test_Project_travis_status_no_travis(project):
 def test_Project_travis_status_with_travis(project, session):
     session._prototype.update({
         'https://example.com/buildstatus.svg': MockResponse(
-            text='<text>success</text>',
+            text=TRAVIS_STATUS_ICON_BUILD_PASSING,
         ),
     })
     project.uses_travis = True
     project.travis_image_url = 'https://example.com/buildstatus.svg'
-    assert project.travis_status == 'success'
+    assert project.travis_status == 'passing'
 
 
 def test_Project_parse_svg_text():
     result = Project._parse_svg_text('''
+      <!-- this is not real svg actually -->
+      <svg xmlns="http://www.w3.org/2000/svg">
       <text fill-opacity="0.5">shadow text</text>
       <text>hello</text>
       <text>cruel</text>
-      <text>world</text>
+      <text><tspan>world</tspan></text>
+      </svg>
     ''', {'cruel'})
     assert result == 'hello world'
 
@@ -850,12 +957,12 @@ def test_Project_appveyor_status_no_appveyor(project):
 def test_Project_appveyor_status_with_appveyor(project, session):
     session._prototype.update({
         'https://example.com/buildstatus.svg': MockResponse(
-            text='<text>success</text>',
+            text=APPVEYOR_STATUS_ICON_BUILD_PASSING,
         ),
     })
     project.uses_appveyor = True
     project.appveyor_image_url = 'https://example.com/buildstatus.svg'
-    assert project.appveyor_status == 'success'
+    assert project.appveyor_status == 'passing'
 
 
 def test_Project_coveralls_urls_no_coveralls(project):
@@ -943,10 +1050,10 @@ def test_Project_get_jenkins_status(project, session, config):
     job = JenkinsJobConfig()
     session._prototype.update({
         'http://example.com/job/project/badge/icon': MockResponse(
-            text='<text>success</text>',
+            text=JENKINS_STATUS_ICON_BUILD_PASSING,
         ),
     })
-    assert project.get_jenkins_status(job) == 'success'
+    assert project.get_jenkins_status(job) == 'passing'
 
 
 def test_Project_python_versions(project):

@@ -14,11 +14,11 @@ import logging
 import math
 import os
 import pathlib
-import re
 import subprocess
 import sys
 import time
 import traceback
+from xml.etree import ElementTree
 from configparser import ConfigParser
 from typing import (
     Any,
@@ -48,7 +48,7 @@ import requests_cache
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.15.0'
+__version__ = '0.16.0'
 
 log = logging.getLogger('project-summary')
 
@@ -579,13 +579,17 @@ class Project:
     @staticmethod
     def _parse_svg_text(svg_text: str, skip_words: Collection[str] = ()) -> str:
         # let's parse SVG with regexps, what could go wrong???
-        text_rx = re.compile(r'<text([^>]*)>([^<]*)</text>')
+        try:
+            tree = ElementTree.fromstring(svg_text)
+        except ElementTree.ParseError:
+            return ''
         status = []
-        for attrs, text in text_rx.findall(svg_text):
-            if 'fill-opacity' in attrs:
+        for node in tree.iter('{http://www.w3.org/2000/svg}text'):
+            if node.get('fill-opacity'):
                 # ignore shadow
                 continue
-            if text not in skip_words:
+            text = ''.join(map(str.strip, node.itertext()))
+            if text and text not in skip_words:
                 status.append(text)
         return ' '.join(status)
 
