@@ -935,6 +935,13 @@ def test_Project_parse_svg_text():
     assert result == 'hello world'
 
 
+def test_Project_parse_svg_text_no_exceptions_pls():
+    result = Project._parse_svg_text('''
+    <this is not valid svg!
+    ''', {})
+    assert result == ''
+
+
 def test_Project_appveyor_urls_no_appveyor(project):
     assert project.appveyor_image_url is None
     assert project.appveyor_url is None
