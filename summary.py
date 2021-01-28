@@ -18,7 +18,6 @@ import subprocess
 import sys
 import time
 import traceback
-from xml.etree import ElementTree
 from configparser import ConfigParser
 from typing import (
     Any,
@@ -37,6 +36,7 @@ from typing import (
     TypeVar,
     Union,
 )
+from xml.etree import ElementTree
 
 import arrow
 import mako.exceptions
