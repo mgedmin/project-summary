@@ -4,7 +4,6 @@ Generate a summary for all my projects.
 """
 
 import argparse
-import datetime
 import functools
 import glob
 import itertools
@@ -48,7 +47,7 @@ import requests_cache
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.16.0'
+__version__ = '0.16.1'
 
 log = logging.getLogger('project-summary')
 
@@ -236,21 +235,10 @@ def is_cached(url: str, session) -> bool:
         return False
     cache_key = session.cache.create_key(
         session.prepare_request(requests.Request('GET', url)))
-    try:
-        response, timestamp = session.cache.get_response_and_time(cache_key)
-    except (ImportError, TypeError):  # pragma: nocover
+    response = session.cache.get_response(cache_key)
+    if response is None:
         return False
-    if response is None or timestamp is None:  # pragma: nocover
-        return False
-    # XXX: private attributes are not nice, I could take the value directly
-    # from args.cache_duration and convert to datetime.timedelta()
-    expire_after = session._cache_expire_after
-    if expire_after is None:
-        return True
-    # XXX: there's a slight chance it might expire after I print but before I
-    # actually do the query!
-    is_expired = datetime.datetime.utcnow() - timestamp > expire_after
-    return not is_expired
+    return not response.is_expired
 
 
 def log_url(url: str, session: requests.Session) -> None:

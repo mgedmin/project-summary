@@ -406,7 +406,7 @@ def test_log_url_cache_miss(caplog):
 
 
 def test_log_url_cache_hit(caplog):
-    caplog.set_level(logging.DEBUG)
+    caplog.set_level(logging.DEBUG, logger='project-summary')
     session = requests_cache.CachedSession(backend='memory')
     add_to_cache('http://example.com', session)
     log_url("http://example.com", session)

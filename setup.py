@@ -47,7 +47,7 @@ setup(
         'markupsafe',
         'pypistats',
         'requests',
-        'requests-cache',
+        'requests-cache >= 0.6',
     ],
     entry_points={
         'console_scripts': [
