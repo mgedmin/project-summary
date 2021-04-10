@@ -231,8 +231,6 @@ class GitHubRateLimitError(GitHubError):
 def is_cached(url: str, session) -> bool:
     if not hasattr(session, 'cache'):
         return False
-    if not session.cache.has_url(url):
-        return False
     cache_key = session.cache.create_key(
         session.prepare_request(requests.Request('GET', url)))
     response = session.cache.get_response(cache_key)
