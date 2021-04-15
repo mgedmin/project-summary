@@ -26,7 +26,8 @@ setup(
         'Development Status :: 5 - Production/Stable',
         'Environment :: Console',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: GNU General Public License (GPL)',
+        'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',
+        'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Operating System :: POSIX',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
@@ -37,7 +38,7 @@ setup(
         'Private :: Do Not Upload To PyPI',  # it rejects unknown classifiers ;)
     ],
     python_requires='>= 3.6',
-    license='GPL',
+    license='GPL v2 or v3',
 
     py_modules=['summary'],
     zip_safe=False,
