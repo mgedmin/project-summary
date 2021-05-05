@@ -1518,8 +1518,7 @@ def main() -> None:
                         help='symlink the assets directory next to the HTML output file')
     parser.add_argument('-o', metavar='FILENAME', dest='output_file',
                         help='write the output to a file (default: stdout)')
-    parser.add_argument('--http-cache', default='.httpcache', metavar='DBNAME',
-                        # .sqlite will be appended automatically
+    parser.add_argument('--http-cache', default='.httpcache.sqlite', metavar='DBNAME',
                         help='cache HTTP requests on disk in an sqlite database (default: %(default)s)')
     parser.add_argument('--no-http-cache', action='store_false', dest='http_cache',
                         help='disable HTTP disk caching')
