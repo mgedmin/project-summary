@@ -1020,7 +1020,7 @@ def test_Project_coverage_number_coverage_unknown(project, session):
 def test_Project_coverage_number_coverage_unavailable(project, session):
     session._prototype.update({
         'https://example.com/coverage.svg': MockResponse(
-            status_code=500,
+            status_code=200,
         ),
     })
     project.coveralls_image_url = 'https://example.com/coverage.svg'

@@ -261,6 +261,7 @@ def github_request(url: str, session: requests.Session) -> requests.Response:
             ))
     elif 400 <= res.status_code < 500:
         raise GitHubError(res.json()['message'])
+    res.raise_for_status()
     try:
         res.json()
     except ValueError as e:
@@ -411,7 +412,9 @@ class Project:
 
     def _http_get(self, url: str, **kwargs) -> requests.Response:
         log_url(url, self.session)
-        return self.session.get(url, **kwargs)
+        response = self.session.get(url, **kwargs)
+        response.raise_for_status()
+        return response
 
     def fetch(self) -> None:
         pipe('git', 'fetch', '--prune', cwd=self.working_tree)
