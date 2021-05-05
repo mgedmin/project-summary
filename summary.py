@@ -43,11 +43,12 @@ import mako.template
 import markupsafe
 import pypistats
 import requests
+import requests.exceptions
 import requests_cache
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.16.1'
+__version__ = '0.16.2'
 
 log = logging.getLogger('project-summary')
 
@@ -1562,6 +1563,8 @@ def main() -> None:
             print_html_report(projects, config, args.output_file)
             if args.symlink_assets:
                 symlink_assets(args.output_file)
+        except requests.exceptions.ConnectionError as e:
+            sys.exit("Network error: %s" % e)
         except GitHubError as e:
             sys.exit("GitHub error: %s" % e)
         except Exception:
