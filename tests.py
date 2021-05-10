@@ -12,7 +12,7 @@ import pypistats
 import pytest
 import requests
 import requests_cache
-from requests.exceptions import ConnectionError
+from requests.exceptions import ConnectionError, HTTPError
 
 import summary
 from summary import (
@@ -1877,12 +1877,17 @@ def _raise(exc):
     return fn
 
 
-def test_main_github_error_produces_no_traceback(tmp_path, monkeypatch, capsys):
+@pytest.mark.parametrize("exc", [
+    ConnectionError,
+    HTTPError,
+    GitHubError,
+])
+def test_main_network_errors_produce_no_traceback(tmp_path, monkeypatch, capsys, exc):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(sys, 'argv', [
         'summary', '--html',
     ])
-    monkeypatch.setattr(summary, 'print_html_report', _raise(GitHubError))
+    monkeypatch.setattr(summary, 'print_html_report', _raise(exc))
     with pytest.raises(SystemExit):
         summary.main()
     out, err = capsys.readouterr()
@@ -1890,20 +1895,7 @@ def test_main_github_error_produces_no_traceback(tmp_path, monkeypatch, capsys):
     assert 'Traceback' not in err
 
 
-def test_main_connection_error_produces_no_traceback(tmp_path, monkeypatch, capsys):
-    monkeypatch.chdir(tmp_path)
-    monkeypatch.setattr(sys, 'argv', [
-        'summary', '--html',
-    ])
-    monkeypatch.setattr(summary, 'print_html_report', _raise(ConnectionError))
-    with pytest.raises(SystemExit):
-        summary.main()
-    out, err = capsys.readouterr()
-    assert 'Traceback' not in out
-    assert 'Traceback' not in err
-
-
-def test_main_nongithub_error_produces_traceback(tmp_path, monkeypatch, capsys):
+def test_main_intenral_errors_produce_traceback(tmp_path, monkeypatch, capsys):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(sys, 'argv', [
         'summary', '--html',

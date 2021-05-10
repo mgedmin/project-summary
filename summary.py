@@ -1566,6 +1566,8 @@ def main() -> None:
             print_html_report(projects, config, args.output_file)
             if args.symlink_assets:
                 symlink_assets(args.output_file)
+        except requests.exceptions.HTTPError as e:
+            sys.exit("HTTP error: %s" % e)
         except requests.exceptions.ConnectionError as e:
             sys.exit("Network error: %s" % e)
         except GitHubError as e:
