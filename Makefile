@@ -1,9 +1,11 @@
+pypackage = project_summary
+
 .PHONY: all
 all: bin/pip bin/summary        ##: create a local virtualenv with bin/summary
 
 HELP_INDENT = ""
 HELP_PREFIX = "make "
-HELP_WIDTH = 18
+HELP_WIDTH = 24
 HELP_SEPARATOR = " - "
 
 .PHONY: help
@@ -22,16 +24,27 @@ coverage:                               ##: measure test coverage
 clean:                                  ##: remove build artifacts
 	rm -rf .env bin .httpcache.sqlite __pycache__ .pytest_cache/ *.egg-info *.pyc package-lock.json
 
+.PHONY: update-all-packages
+update-all-packages: bin/pip            ##: upgrade all packages to latest versions
+	bin/pip install -U pip setuptools wheel
+	bin/pip install -U --upgrade-strategy=eager -e .
+	make update-requirements
+
+.PHONY: update-requirements
+update-requirements: bin/pip            ##: regenerate requirements.txt from currently installed versions
+	PYTHONPATH= bin/pip freeze | grep -v '^-e .*$(pypackage)$$' > requirements.txt
+
 bin:
 	mkdir bin
 
-bin/summary: setup.py | bin/pip
-	bin/pip install -e .
+bin/summary: setup.py requirements.txt | bin/pip
+	bin/pip install -e . -c requirements.txt
 	ln -sfr .env/bin/summary bin/
+	@touch -c $@
 
 bin/pip: | bin
-	python3 -m venv .env
-	.env/bin/pip install wheel
+	virtualenv -p python3 .env
+	.env/bin/pip install -U pip
 	ln -sfr .env/bin/pip bin/
 
 bin/bower: | bin
