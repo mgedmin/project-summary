@@ -14,3 +14,6 @@ recursive-include assets *.svg
 recursive-include assets *.ttf
 recursive-include assets *.woff
 recursive-include assets *.woff2
+
+# added by check-manifest
+include *.txt
