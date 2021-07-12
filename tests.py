@@ -381,7 +381,7 @@ def add_to_cache(url, session):
     cache_key = session.cache.create_key(request)
     response = requests.Response()
     response.request = request
-    session.cache.save_response(cache_key, response)
+    session.cache.save_response(response, cache_key)
 
 
 def test_is_cached_has_cache_but_no_expiration():
