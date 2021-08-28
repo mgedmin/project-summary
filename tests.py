@@ -7,6 +7,7 @@ import textwrap
 import time
 import traceback
 
+import httpx
 import markupsafe
 import pypistats
 import pytest
@@ -721,6 +722,7 @@ def config():
 def session(monkeypatch):
     session = MockSession()
     monkeypatch.setattr(requests, 'get', session.get)
+    monkeypatch.setattr(httpx, 'get', session.get)
     return session
 
 
