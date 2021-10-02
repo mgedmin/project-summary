@@ -675,8 +675,8 @@ def test_get_last_tag(tmp_path):
 
 def test_get_date_of_tag(tmp_path):
     subprocess.run(['git', 'init'], cwd=tmp_path)
-    git_commit(tmp_path, '-m', 'initial')
     before = time.strftime('%Y-%m-%d %H:%M:%S %z')
+    git_commit(tmp_path, '-m', 'initial')
     subprocess.run(['git', 'tag', '1.0'], cwd=tmp_path)
     after = time.strftime('%Y-%m-%d %H:%M:%S %z')
     result = get_date_of_tag(tmp_path, '1.0')
