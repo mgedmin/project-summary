@@ -45,6 +45,7 @@ import pypistats
 import requests
 import requests.exceptions
 import requests_cache
+import httpx
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
@@ -729,7 +730,16 @@ class Project:
     def downloads(self) -> Optional[int]:
         try:
             data = json.loads(pypistats.recent(self.pypi_name, format='json'))
+        except httpx.HTTPStatusError as e:
+            # newer versions of pypistats use httpx
+            # e.response.headers might have a Retry-After for 429 errors?
+            log.warning(e)
+            if e.status_code == 429:
+                # XXX temporary debug just to see what headers get reported
+                print(e.headers)
+            return None
         except requests.HTTPError as e:
+            # older versions of pypistats use requests
             log.warning(e)
             return None
         else:
