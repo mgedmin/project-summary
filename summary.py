@@ -38,6 +38,7 @@ from typing import (
 from xml.etree import ElementTree
 
 import arrow
+import httpx
 import mako.exceptions
 import mako.template
 import markupsafe
@@ -45,7 +46,6 @@ import pypistats
 import requests
 import requests.exceptions
 import requests_cache
-import httpx
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
