@@ -47,7 +47,7 @@ setup(
         'arrow',
         'mako',
         'markupsafe',
-        'pypistats',
+        'pypistats >= 0.13',
         'requests',
         'requests-cache >= 0.6',
     ],

@@ -44,7 +44,6 @@ import mako.template
 import markupsafe
 import pypistats
 import requests
-import requests.exceptions
 import requests_cache
 
 
@@ -731,15 +730,13 @@ class Project:
         try:
             data = json.loads(pypistats.recent(self.pypi_name, format='json'))
         except httpx.HTTPStatusError as e:
-            # newer versions of pypistats use httpx
             # e.response.headers might have a Retry-After for 429 errors?
             log.warning(e)
-            if e.status_code == 429:
+            if e.response.status_code == 429:
                 # XXX temporary debug just to see what headers get reported
-                print(e.headers)
+                print(e.response.headers)
             return None
-        except requests.HTTPError as e:
-            # older versions of pypistats use requests
+        except httpx.HTTPError as e:
             log.warning(e)
             return None
         else:
@@ -1577,9 +1574,9 @@ def main() -> None:
             print_html_report(projects, config, args.output_file)
             if args.symlink_assets:
                 symlink_assets(args.output_file)
-        except requests.exceptions.HTTPError as e:
+        except (httpx.HTTPError, requests.HTTPError) as e:
             sys.exit("HTTP error: %s" % e)
-        except requests.exceptions.ConnectionError as e:
+        except requests.ConnectionError as e:
             sys.exit("Network error: %s" % e)
         except GitHubError as e:
             sys.exit("GitHub error: %s" % e)

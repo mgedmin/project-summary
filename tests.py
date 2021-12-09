@@ -13,7 +13,6 @@ import pypistats
 import pytest
 import requests
 import requests_cache
-from requests.exceptions import ConnectionError, HTTPError
 
 import summary
 from summary import (
@@ -449,7 +448,7 @@ class MockResponse:
             self.headers.update(headers)
 
     def _copy(self):
-        return MockResponse(
+        return self.__class__(
             status_code=self.status_code, text=self.text, headers=self.headers)
 
     def json(self):
@@ -458,6 +457,21 @@ class MockResponse:
     def raise_for_status(self):
         if self.status_code >= 400:
             raise requests.HTTPError(self.status_code)
+
+
+class MockHttpxResponse(MockResponse):
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise httpx.HTTPStatusError(
+                message=str(self.status_code), request=None,
+                response=self)
+
+
+class MockHttpxNetworkErrorResponse(MockResponse):
+
+    def raise_for_status(self):
+        raise httpx.HTTPError("oh no")
 
 
 _json_dumps = json.dumps
@@ -1143,26 +1157,32 @@ def test_Project_pypistats_url(project):
 def test_Project_downloads(project, tmp_path, monkeypatch, session):
     monkeypatch.setattr(pypistats, 'CACHE_DIR', tmp_path / 'pypistats-cache')
     session._prototype.update({
-        'https://pypistats.org/api/packages/example/recent': MockResponse(
+        'https://pypistats.org/api/packages/example/recent': MockHttpxResponse(
             json={
                 'data': {
                     'last_month': 42,
                 },
             },
         ),
-        None: MockResponse(404),
+        None: MockHttpxResponse(404),
     })
     project.pypi_name = 'example'
     assert project.downloads == 42
 
 
-def test_Project_downloads_error(project, tmp_path, monkeypatch, session):
+@pytest.mark.parametrize("response", [
+    MockHttpxResponse(404),
+    MockHttpxResponse(429),
+    MockHttpxResponse(500),
+    MockHttpxNetworkErrorResponse(),
+])
+def test_Project_downloads_error(
+    project, tmp_path, monkeypatch, session, response,
+):
     monkeypatch.setattr(pypistats, 'CACHE_DIR', tmp_path / 'pypistats-cache')
     session._prototype.update({
-        'https://pypistats.org/api/packages/example/recent': MockResponse(
-            500,
-        ),
-        None: MockResponse(404),
+        'https://pypistats.org/api/packages/example/recent': response,
+        None: MockHttpxResponse(404),
     })
     project.pypi_name = 'example'
     assert project.downloads is None
@@ -1880,9 +1900,10 @@ def _raise(exc):
 
 
 @pytest.mark.parametrize("exc", [
-    ConnectionError,
-    HTTPError,
-    GitHubError,
+    requests.ConnectionError(),
+    requests.HTTPError(),
+    httpx.HTTPError("oh no"),
+    GitHubError(),
 ])
 def test_main_network_errors_produce_no_traceback(tmp_path, monkeypatch, capsys, exc):
     monkeypatch.chdir(tmp_path)
