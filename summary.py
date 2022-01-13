@@ -733,8 +733,8 @@ class Project:
             # e.response.headers might have a Retry-After for 429 errors?
             log.warning(e)
             if e.response.status_code == 429:
-                # XXX temporary debug just to see what headers get reported
-                print(e.response.headers)
+                # XXX temporary debug just to see what gets reported
+                print(f'429 error for {self.pypistats_url}:\n{e.response.text}')
             return None
         except httpx.HTTPError as e:
             log.warning(e)
