@@ -4,6 +4,7 @@ Generate a summary for all my projects.
 """
 
 import argparse
+import datetime
 import functools
 import glob
 import itertools
@@ -45,10 +46,11 @@ import markupsafe
 import pypistats
 import requests
 import requests_cache
+from requests_cache.backends.sqlite import SQLitePickleDict
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.16.2'
+__version__ = '0.17.0'
 
 log = logging.getLogger('project-summary')
 
@@ -212,6 +214,55 @@ class Configuration(object):
     @reify
     def python_versions(self) -> List[str]:
         return self._config.get('project-summary', 'python-versions').split()
+
+
+#
+# Caching
+#
+
+class Cache:
+
+    def get(self, key: str, valid_for: datetime.timedelta, if_missing=lambda: None) -> Any:
+        now = datetime.datetime.utcnow()
+        value, expires = self._get(key)
+        if expires is None or expires < now:
+            value = if_missing()
+            expires = now + valid_for
+            self._set(key, value, expires)
+        return value
+
+    def _get(self, key: str) -> Tuple[Any, Optional[datetime.datetime]]:
+        return (None, None)
+
+    def _set(self, key: str, value: Any, expires: datetime.datetime) -> None:
+        pass
+
+
+class MemoryCache(Cache):
+
+    def __init__(self) -> None:
+        self.cached: Dict[str, Any] = {}
+
+    def _get(self, key):
+        return self.cached.get(key, (None, None))
+
+    def _set(self, key, value, expires):
+        self.cached[key] = (value, expires)
+
+
+class SQLiteCache(Cache):
+
+    def __init__(self, db_path: str) -> None:
+        self.cached = SQLitePickleDict(db_path, table_name='project_summary_cache', serializer='json')
+
+    def _get(self, key):
+        value, expires = self.cached.get(key, (None, None))
+        if expires is not None:
+            expires = datetime.datetime.fromisoformat(expires)
+        return (value, expires)
+
+    def _set(self, key, value, expires):
+        self.cached[key] = (value, expires.isoformat())
 
 
 #
@@ -402,10 +453,11 @@ def get_supported_python_versions(repo_path: str) -> List[str]:
 
 class Project:
 
-    def __init__(self, working_tree: str, config: Configuration, session: requests.Session) -> None:
+    def __init__(self, working_tree: str, config: Configuration, session: requests.Session, cache: Cache) -> None:
         self.working_tree = working_tree
         self.config = config
         self.session = session
+        self.cache = cache
 
     def __repr__(self):
         return f'<Project {self.name!r}>'
@@ -731,7 +783,12 @@ class Project:
         # - the data is updated once daily and should be cached
         # - there's IP-based rate limiting
         try:
-            data = json.loads(pypistats.recent(self.pypi_name, format='json'))
+            data = self.cache.get(
+                self.pypistats_url,
+                valid_for=datetime.timedelta(days=1),
+                if_missing=lambda:
+                    json.loads(pypistats.recent(self.pypi_name, format='json'))
+            )
         except httpx.HTTPStatusError as e:
             log.warning('%s error for %s', e.response.status_code, self.pypistats_url)
             return None
@@ -743,9 +800,9 @@ class Project:
 
 
 @collect
-def get_projects(config: Configuration, session: requests.Session) -> Iterable[Project]:
+def get_projects(config: Configuration, session: requests.Session, cache: Cache) -> Iterable[Project]:
     return _filter_projects((
-        Project(path, config, session) for path in get_repos(config)
+        Project(path, config, session, cache) for path in get_repos(config)
     ), config)
 
 
@@ -1530,9 +1587,9 @@ def main() -> None:
     parser.add_argument('-o', metavar='FILENAME', dest='output_file',
                         help='write the output to a file (default: stdout)')
     parser.add_argument('--http-cache', default='.httpcache.sqlite', metavar='DBNAME',
-                        help='cache HTTP requests on disk in an sqlite database (default: %(default)s)')
+                        help='cache HTTP responses on disk in an sqlite database (default: %(default)s)')
     parser.add_argument('--no-http-cache', action='store_false', dest='http_cache',
-                        help='disable HTTP disk caching')
+                        help='disable HTTP disk caching (not recommended)')
     parser.add_argument('--cache-duration', default='30m', type=to_seconds,
                         help='how long to cache HTTP requests (default: %(default)s)')
     parser.add_argument('--fetch', '--update', action='store_true',
@@ -1554,6 +1611,9 @@ def main() -> None:
             expire_after=args.cache_duration,
             allowable_codes=(200, 302),
         )
+        cache: Cache = SQLiteCache(args.http_cache)
+    else:
+        cache = MemoryCache()
 
     session = requests.Session()
     session.headers['User-Agent'] = f'project-summary/{__version__}'
@@ -1565,7 +1625,7 @@ def main() -> None:
         config.pull = args.pull
     if args.skip_branches is not None:
         config.skip_branches = args.skip_branches
-    projects = get_projects(config, session)
+    projects = get_projects(config, session, cache)
     if args.html:
         try:
             if args.verbose:

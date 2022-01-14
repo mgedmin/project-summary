@@ -29,7 +29,6 @@ setup(
         'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Operating System :: POSIX',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
@@ -38,7 +37,7 @@ setup(
         "Programming Language :: Python :: Implementation :: PyPy",
         'Private :: Do Not Upload To PyPI',  # it rejects unknown classifiers ;)
     ],
-    python_requires='>= 3.6',
+    python_requires='>= 3.7',
     license='GPL v2 or v3',
 
     py_modules=['summary'],
@@ -49,7 +48,7 @@ setup(
         'markupsafe',
         'pypistats >= 0.13',
         'requests',
-        'requests-cache >= 0.6',
+        'requests-cache >= 0.8',
     ],
     entry_points={
         'console_scripts': [

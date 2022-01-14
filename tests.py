@@ -19,6 +19,7 @@ from summary import (
     AppveyorColumn,
     BuildStatusColumn,
     CSS,
+    Cache,
     ChangesColumn,
     Column,
     Configuration,
@@ -31,6 +32,7 @@ from summary import (
     IssuesColumn,
     JenkinsColumn,
     JenkinsJobConfig,
+    MemoryCache,
     NameColumn,
     Page,
     Pages,
@@ -38,6 +40,7 @@ from summary import (
     PullsColumn,
     PypiStatsColumn,
     PythonSupportColumn,
+    SQLiteCache,
     StatusColumn,
     Template,
     TravisColumn,
@@ -364,6 +367,59 @@ def test_Configuration_allows_underscores_or_dashes(tmp_path):
     assert cfg.pypi_name_map == {
         'foo': 'bar',
     }
+
+
+@pytest.fixture
+def no_cache():
+    return Cache()
+
+
+@pytest.fixture
+def memory_cache():
+    return MemoryCache()
+
+
+@pytest.fixture
+def sqlite_cache(tmp_path):
+    return SQLiteCache(tmp_path / 'cache.sqlite')
+
+
+@pytest.mark.parametrize("cache", [
+    'no_cache',
+    'memory_cache',
+    'sqlite_cache',
+])
+def test_Cache_get_missing(request, cache):
+    # https://miguendes.me/how-to-use-fixtures-as-arguments-in-pytestmarkparametrize
+    cache = request.getfixturevalue(cache)
+    valid_for = datetime.timedelta(1)
+    assert cache.get('xyzzy', valid_for=valid_for, if_missing=lambda: 42) == 42
+
+
+@pytest.mark.parametrize("cache", [
+    # no_cache cannot pass this one
+    'memory_cache',
+    'sqlite_cache',
+])
+def test_Cache_get_cached(request, cache):
+    cache = request.getfixturevalue(cache)
+    valid_for = datetime.timedelta(1)
+    # prime the cache
+    cache.get('xyzzy', valid_for=valid_for, if_missing=lambda: 42) == 42
+    assert cache.get('xyzzy', valid_for=valid_for, if_missing=lambda: -1) == 42
+
+
+@pytest.mark.parametrize("cache", [
+    'no_cache',
+    'memory_cache',
+    'sqlite_cache',
+])
+def test_Cache_get_expired(request, cache):
+    cache = request.getfixturevalue(cache)
+    valid_for = datetime.timedelta(-1)
+    # prime the cache
+    cache.get('xyzzy', valid_for=valid_for, if_missing=lambda: 42) == 42
+    assert cache.get('xyzzy', valid_for=valid_for, if_missing=lambda: -1) == -1
 
 
 def test_is_cached_no_cache():
@@ -741,8 +797,14 @@ def session(monkeypatch):
 
 
 @pytest.fixture
-def project(tmp_path, config, session):
-    project = Project(tmp_path, config, session)
+def cache(memory_cache):
+    cache = MemoryCache()
+    return cache
+
+
+@pytest.fixture
+def project(tmp_path, config, session, cache):
+    project = Project(tmp_path, config, session, cache)
     return project
 
 
@@ -838,10 +900,10 @@ def test_Project_name_remote(project):
     assert project.name == 'example'
 
 
-def test_Project_name_local(tmp_path, config, session):
+def test_Project_name_local(tmp_path, config, session, cache):
     proj_path = tmp_path / "proj"
     proj_path.mkdir()
-    project = Project(proj_path, config, session)
+    project = Project(proj_path, config, session, cache)
     assert project.name == 'proj'
 
 
@@ -855,17 +917,17 @@ def test_Project_pypi_url(project):
     assert project.pypi_url == 'https://pypi.org/project/example/'
 
 
-def test_Project_jenkins_job(tmp_path, config, session):
+def test_Project_jenkins_job(tmp_path, config, session, cache):
     proj_path = tmp_path / "proj"
     proj_path.mkdir()
-    project = Project(proj_path, config, session)
+    project = Project(proj_path, config, session, cache)
     assert project.jenkins_job == 'proj'
 
 
-def test_Project_jenkins_job_using_workspace(tmp_path, config, session):
+def test_Project_jenkins_job_using_workspace(tmp_path, config, session, cache):
     proj_path = tmp_path / "proj" / "workspace"
     proj_path.mkdir(parents=True)
-    project = Project(proj_path, config, session)
+    project = Project(proj_path, config, session, cache)
     assert project.jenkins_job == 'proj'
 
 
@@ -1188,46 +1250,46 @@ def test_Project_downloads_error(
     assert project.downloads is None
 
 
-def test_get_projects(tmp_path, config, session):
+def test_get_projects(tmp_path, config, session, cache):
     proj = (tmp_path / 'a')
     subprocess.run(['git', 'init', proj])
     git_commit(proj, '-m', 'a')
     subprocess.run(['git', 'tag', '1.0'], cwd=proj)
     config._config.set('project-summary', 'projects', str(tmp_path / '*'))
-    projects = get_projects(config, session)
+    projects = get_projects(config, session, cache)
     assert [p.name for p in projects] == ['a']
 
 
-def test_filter_projects_can_skip_names(tmp_path, config, session):
-    p1 = Project(tmp_path, config, session)
+def test_filter_projects_can_skip_names(tmp_path, config, session, cache):
+    p1 = Project(tmp_path, config, session, cache)
     p1.name = 'a'
     p1.last_tag = '0.1'
-    p2 = Project(tmp_path, config, session)
+    p2 = Project(tmp_path, config, session, cache)
     p2.name = 'b'
     p2.last_tag = '0.2'
     config.ignore = ['a']
     assert list(_filter_projects([p1, p2], config)) == [p2]
 
 
-def test_filter_projects_can_skip_branches(tmp_path, config, session):
-    p1 = Project(tmp_path, config, session)
+def test_filter_projects_can_skip_branches(tmp_path, config, session, cache):
+    p1 = Project(tmp_path, config, session, cache)
     p1.branch = 'master'
     p1.last_tag = '0.1'
-    p2 = Project(tmp_path, config, session)
+    p2 = Project(tmp_path, config, session, cache)
     p2.branch = 'devel'
     p1.last_tag = '0.2'
     config.skip_branches = True
     assert list(_filter_projects([p1, p2], config)) == [p1]
 
 
-def test_filter_projects_can_fetch(tmp_path, config, session):
-    p1 = Project(tmp_path, config, session)
+def test_filter_projects_can_fetch(tmp_path, config, session, cache):
+    p1 = Project(tmp_path, config, session, cache)
     config.fetch = True
     assert list(_filter_projects([p1], config)) == []
 
 
-def test_filter_projects_can_pull(tmp_path, config, session):
-    p1 = Project(tmp_path, config, session)
+def test_filter_projects_can_pull(tmp_path, config, session, cache):
+    p1 = Project(tmp_path, config, session, cache)
     config.pull = True
     assert list(_filter_projects([p1], config)) == []
 
@@ -1872,6 +1934,15 @@ def test_main(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(sys, 'argv', [
         'summary',
+    ])
+    summary.main()
+
+
+def test_main_no_cache(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sys, 'argv', [
+        'summary',
+        '--no-http-cache',
     ])
     summary.main()
 
