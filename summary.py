@@ -727,14 +727,13 @@ class Project:
 
     @reify
     def downloads(self) -> Optional[int]:
+        # https://pypistats.org/api/#etiquette:
+        # - the data is updated once daily and should be cached
+        # - there's IP-based rate limiting
         try:
             data = json.loads(pypistats.recent(self.pypi_name, format='json'))
         except httpx.HTTPStatusError as e:
-            # e.response.headers might have a Retry-After for 429 errors?
-            log.warning(e)
-            if e.response.status_code == 429:
-                # XXX temporary debug just to see what gets reported
-                print(f'429 error for {self.pypistats_url}:\n{e.response.text}')
+            log.warning('%s error for %s', e.response.status_code, self.pypistats_url)
             return None
         except httpx.HTTPError as e:
             log.warning(e)
