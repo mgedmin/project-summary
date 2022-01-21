@@ -405,6 +405,8 @@ def get_branch_name(repo_path: str) -> str:
     # if several branches point to the same commit, we must've done a
     # fast-forward merge.  if one of those branches is master, we want it,
     # otherwise we might incorrectly skip this repo due to --skip-branches
+    if 'main' in names:
+        return 'main'
     if 'master' in names:
         return 'master'
     if names:
@@ -810,7 +812,7 @@ def _filter_projects(projects: Iterable[Project], config: Configuration) -> Iter
     for p in projects:
         if p.name in config.ignore:
             continue
-        if config.skip_branches and p.branch != 'master':
+        if config.skip_branches and p.branch not in ('main', 'master'):
             continue
         if config.fetch:
             p.fetch()
@@ -1073,7 +1075,8 @@ class NameColumn(Column):
 
     def inner_html(self, project: Project) -> Markup:
         return html('a', project.name, href=project.url) + (
-            f' {project.branch}' if project.branch != 'master' else ''
+            f' {project.branch}' if project.branch not in ('main', 'master')
+            else ''
         )
 
 
