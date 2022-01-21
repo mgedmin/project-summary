@@ -669,6 +669,18 @@ def test_get_branch_name_detached_head(tmp_path):
     assert result == 'master'
 
 
+def test_get_branch_name_detached_head_multiple_names(tmp_path):
+    subprocess.run(['git', 'init'], cwd=tmp_path)
+    git_commit(tmp_path, '-m', 'initial')
+    subprocess.run(['git', 'branch', 'main'], cwd=tmp_path)
+    subprocess.run(['git', 'branch', 'aa'], cwd=tmp_path)
+    commit = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=tmp_path,
+                            stdout=subprocess.PIPE).stdout.decode().strip()
+    subprocess.run(['git', 'checkout', commit], cwd=tmp_path)
+    result = get_branch_name(tmp_path)
+    assert result == 'main'
+
+
 def test_get_branch_name_detached_head_from_remote(tmp_path):
     origin = tmp_path / 'origin'
     subprocess.run(['git', 'init', origin])
