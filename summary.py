@@ -279,7 +279,7 @@ class GitHubRateLimitError(GitHubError):
 
 # session should be type-annotated to be requests.Session, but!  then mypy
 # complains about session.cache being an undefined attribute, which is fair,
-# it's monkey-patched in place by requests_session...
+# it's monkey-patched in place by requests_cache...
 def is_cached(url: str, session) -> bool:
     if not hasattr(session, 'cache'):
         return False
