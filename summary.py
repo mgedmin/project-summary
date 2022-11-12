@@ -1654,7 +1654,7 @@ def main() -> None:
         print_report(projects, args.verbose)
 
 
-def print_report(projects: List[Project], verbose: int, file: TextIO = None) -> None:
+def print_report(projects: List[Project], verbose: int, file: Optional[TextIO] = None) -> None:
     # https://github.com/python/mypy/issues/8928
     print_ = functools.partial(print, file=file if file is not None else sys.stdout)
     for project in projects:
@@ -1676,7 +1676,7 @@ def print_report(projects: List[Project], verbose: int, file: TextIO = None) -> 
             print_("")
 
 
-def print_html_report(projects: List[Project], config: Configuration, filename: str = None) -> None:
+def print_html_report(projects: List[Project], config: Configuration, filename: Optional[str] = None) -> None:
     # I want atomicity: don't destroy old .html file if an exception happens
     # during rendering.
     html = template.render_unicode(
@@ -1691,7 +1691,7 @@ def print_html_report(projects: List[Project], config: Configuration, filename: 
         print(html)
 
 
-def symlink_assets(filename: str = None) -> None:
+def symlink_assets(filename: Optional[str] = None) -> None:
     if filename and filename != '-':
         symlink = pathlib.Path(filename).with_name('assets')
         if not symlink.exists():
