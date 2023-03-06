@@ -46,11 +46,11 @@ import markupsafe
 import pypistats
 import requests
 import requests_cache
-from requests_cache.backends.sqlite import SQLitePickleDict
+from requests_cache.backends.sqlite import SQLiteDict
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.17.0'
+__version__ = '0.18.0'
 
 log = logging.getLogger('project-summary')
 
@@ -253,7 +253,7 @@ class MemoryCache(Cache):
 class SQLiteCache(Cache):
 
     def __init__(self, db_path: str) -> None:
-        self.cached = SQLitePickleDict(db_path, table_name='project_summary_cache', serializer='json')
+        self.cached = SQLiteDict(db_path, table_name='project_summary_cache', serializer='json')
 
     def _get(self, key):
         value, expires = self.cached.get(key, (None, None))
@@ -277,30 +277,21 @@ class GitHubRateLimitError(GitHubError):
     pass
 
 
-# session should be type-annotated to be requests.Session, but!  then mypy
-# complains about session.cache being an undefined attribute, which is fair,
-# it's monkey-patched in place by requests_cache...
-def is_cached(url: str, session) -> bool:
-    if not hasattr(session, 'cache'):
-        return False
-    cache_key = session.cache.create_key(
-        session.prepare_request(requests.Request('GET', url)))
-    response = session.cache.get_response(cache_key)
-    if response is None:
-        return False
-    return not response.is_expired
-
-
-def log_url(url: str, session: requests.Session) -> None:
-    if is_cached(url, session):
+def log_and_get_url(url: str, session: requests.Session, **kwargs) -> requests.Response:
+    if hasattr(session, 'cache'):
+        res = session.get(url, only_if_cached=True, **kwargs)  # type: ignore
+    else:
+        res = None
+    if res is not None and res.status_code != 504:  # not cached
         log.debug('HIT %s', url)
     else:
         log.debug('GET %s', url)
+        res = session.get(url, **kwargs)
+    return res
 
 
 def github_request(url: str, session: requests.Session) -> requests.Response:
-    log_url(url, session)
-    res = session.get(url)
+    res = log_and_get_url(url, session)
     if res.status_code == 403 and res.headers.get('X-RateLimit-Remaining') == '0':
         reset_time = int(res.headers['X-RateLimit-Reset'])
         minutes = int(math.ceil((reset_time - time.time()) / 60))
@@ -465,8 +456,7 @@ class Project:
         return f'<Project {self.name!r}>'
 
     def _http_get(self, url: str, **kwargs) -> requests.Response:
-        log_url(url, self.session)
-        response = self.session.get(url, **kwargs)
+        response = log_and_get_url(url, self.session, **kwargs)
         response.raise_for_status()
         return response
 

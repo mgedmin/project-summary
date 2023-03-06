@@ -34,6 +34,10 @@ update-all-packages: bin/pip            ##: upgrade all packages to latest versi
 update-requirements: bin/pip            ##: regenerate requirements.txt from currently installed versions
 	PYTHONPATH= bin/pip freeze | grep -v '^-e .*$(pypackage)$$' > requirements.txt
 
+.PHONY: tags
+tags:   bin/summary
+	ctags -R summary.py .env/lib/
+
 bin:
 	mkdir bin
 

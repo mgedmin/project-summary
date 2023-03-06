@@ -12,7 +12,7 @@ import markupsafe
 import pypistats
 import pytest
 import requests
-import requests_cache
+from requests_cache.session import CacheMixin
 
 import summary
 from summary import (
@@ -61,8 +61,7 @@ from summary import (
     github_request,
     github_request_list,
     html,
-    is_cached,
-    log_url,
+    log_and_get_url,
     nice_date,
     normalize_github_url,
     pipe,
@@ -422,54 +421,6 @@ def test_Cache_get_expired(request, cache):
     assert cache.get('xyzzy', valid_for=valid_for, if_missing=lambda: -1) == -1
 
 
-def test_is_cached_no_cache():
-    session = requests.Session()
-    assert not is_cached('https://example.com', session)
-
-
-def test_is_cached_empty_cache():
-    session = requests_cache.CachedSession(backend='memory')
-    assert not is_cached('https://example.com', session)
-
-
-def add_to_cache(url, session):
-    request = session.prepare_request(requests.Request('GET', url))
-    cache_key = session.cache.create_key(request)
-    response = requests.Response()
-    response.request = request
-    session.cache.save_response(response, cache_key)
-
-
-def test_is_cached_has_cache_but_no_expiration():
-    session = requests_cache.CachedSession(backend='memory')
-    url = 'https://example.com'
-    add_to_cache(url, session)
-    assert is_cached(url, session)
-
-
-def test_is_cached_has_cache_not_expired():
-    session = requests_cache.CachedSession(
-        backend='memory', expire_after=datetime.timedelta(minutes=15))
-    url = 'https://example.com'
-    add_to_cache(url, session)
-    assert is_cached(url, session)
-
-
-def test_log_url_cache_miss(caplog):
-    caplog.set_level(logging.DEBUG)
-    session = requests.Session()
-    log_url("http://example.com", session)
-    assert caplog.messages == ['GET http://example.com']
-
-
-def test_log_url_cache_hit(caplog):
-    caplog.set_level(logging.DEBUG, logger='project-summary')
-    session = requests_cache.CachedSession(backend='memory')
-    add_to_cache('http://example.com', session)
-    log_url("http://example.com", session)
-    assert caplog.messages == ['HIT http://example.com']
-
-
 class MockSession:
 
     def __init__(self, prototype=None):
@@ -480,13 +431,40 @@ class MockSession:
                 None: prototype or MockResponse()
             }
 
-    def get(self, url, allow_redirects=True, headers=None):
+    def request(self, method, url, *, allow_redirects=True, headers=None, params=None):
         prototype = self._prototype.get(url)
         if prototype is None:
             prototype = self._prototype.get(None)
         if prototype is None:
             return MockResponse()
         return prototype._copy()
+
+    def get(self, url, **kwargs):
+        return self.request('GET', url, **kwargs)
+
+
+class MockCachedSession(CacheMixin, MockSession):
+
+    # I don't like this.  requests-cache's CacheMixin overrides request(),
+    # converts only_if_cached to headers['Cache-Control'] and calls
+    # super().request(), expecting it to do some processing and call its
+    # overridden .send_request(), which then actually implements the cache
+    # logic.  My MockSession doesn't even have .send_request().  And here we're
+    # overriding request() and returning 504 before CacheMixin has any chance
+    # of doing anything at all.
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.cache = {}
+
+    def request(self, method, url, *, headers=None, **kwargs):
+        only_if_cached = kwargs.get('only_if_cached')
+        if only_if_cached and url not in self.cache:
+            return MockResponse(504)
+        return super().request(method, url, headers=headers, **kwargs)
+
+
+_json_dumps = json.dumps
 
 
 class MockResponse:
@@ -530,7 +508,50 @@ class MockHttpxNetworkErrorResponse(MockResponse):
         raise httpx.HTTPError("oh no")
 
 
-_json_dumps = json.dumps
+@pytest.fixture
+def cached_session():
+    session = MockCachedSession(
+        backend='memory', expire_after=datetime.timedelta(minutes=15))
+    return session
+
+
+def add_to_cache(url, session, expired=False):
+    if not expired:
+        session.cache[url] = True
+
+
+def test_log_url_no_cache(caplog):
+    caplog.set_level(logging.DEBUG)
+    session = MockSession()
+    resp = log_and_get_url("http://example.com", session)
+    assert caplog.messages == ['GET http://example.com']
+    assert resp.status_code == 200
+
+
+def test_log_url_cache_miss(cached_session, caplog):
+    caplog.set_level(logging.DEBUG)
+    session = cached_session
+    resp = log_and_get_url("http://example.com", session)
+    assert caplog.messages == ['GET http://example.com']
+    assert resp.status_code == 200
+
+
+def test_log_url_cache_hit(cached_session, caplog):
+    caplog.set_level(logging.DEBUG, logger='project-summary')
+    session = cached_session
+    add_to_cache('http://example.com', session)
+    resp = log_and_get_url("http://example.com", session)
+    assert caplog.messages == ['HIT http://example.com']
+    assert resp.status_code == 200
+
+
+def test_log_url_cache_miss_due_to_expiration(cached_session, caplog):
+    caplog.set_level(logging.DEBUG, logger='project-summary')
+    session = cached_session
+    add_to_cache('http://example.com', session, expired=True)
+    resp = log_and_get_url("http://example.com", session)
+    assert caplog.messages == ['GET http://example.com']
+    assert resp.status_code == 200
 
 
 def test_github_request():
