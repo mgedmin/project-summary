@@ -2027,3 +2027,9 @@ def test_print_html_report(tmp_path, config):
 def test_symlink_assets(tmp_path):
     symlink_assets(tmp_path / 'output.html')
     assert (tmp_path / 'assets' / 'css' / 'bootstrap.css').exists()
+
+
+@pytest.fixture(autouse=True)
+def clean_environment(monkeypatch):
+    monkeypatch.setenv('GIT_CONFIG_GLOBAL', '/dev/null')
+    monkeypatch.setenv('GIT_CONFIG_SYSTEM', '/dev/null')
