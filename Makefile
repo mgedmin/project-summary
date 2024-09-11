@@ -22,7 +22,7 @@ coverage:                               ##: measure test coverage
 
 .PHONY: clean
 clean:                                  ##: remove build artifacts
-	rm -rf .env bin .httpcache.sqlite __pycache__ .pytest_cache/ *.egg-info *.pyc package-lock.json
+	rm -rf .venv bin .httpcache.sqlite __pycache__ .pytest_cache/ *.egg-info *.pyc package-lock.json
 
 .PHONY: update-all-packages
 update-all-packages: bin/pip            ##: upgrade all packages to latest versions
@@ -36,20 +36,20 @@ update-requirements: bin/pip            ##: regenerate requirements.txt from cur
 
 .PHONY: tags
 tags:   bin/summary
-	ctags -R summary.py .env/lib/
+	ctags -R summary.py .venv/lib/
 
 bin:
 	mkdir bin
 
 bin/summary: setup.py requirements.txt | bin/pip
 	bin/pip install -e . -c requirements.txt
-	ln -sfr .env/bin/summary bin/
+	ln -sfr .venv/bin/summary bin/
 	@touch -c $@
 
 bin/pip: | bin
-	virtualenv -p python3 .env
-	.env/bin/pip install -U pip
-	ln -sfr .env/bin/pip bin/
+	virtualenv -p python3 .venv
+	.venv/bin/pip install -U pip
+	ln -sfr .venv/bin/pip bin/
 
 bin/bower: | bin
 	npm install bower
