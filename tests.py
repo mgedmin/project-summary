@@ -1327,6 +1327,10 @@ def test_filter_projects_can_pull(tmp_path, config, session, cache):
     assert list(_filter_projects([p1], config)) == []
 
 
+@pytest.mark.xfail(
+    sys.version_info >= (3, 13),
+    reason="traceback formatter in 3.13 shows only the first line of code",
+)
 def test_mako_error_handler():
     template = Template('''
       blah blah
