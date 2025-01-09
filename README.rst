@@ -1,8 +1,8 @@
 Project Overview
 ================
 
-.. image:: https://github.com/mgedmin/project-summary/workflows/build/badge.svg?branch=master
-    :target: https://github.com/mgedmin/project-summary/actions
+.. image:: https://github.com/mgedmin/project-summary/actions/workflows/build.yml/badge.svg?branch=master
+    :target: https://github.com/mgedmin/project-summary/actions/workflows/build.yml
 
 I maintain a bunch of Open Source projects.  Most of them in Python.
 Most of them on GitHub.
