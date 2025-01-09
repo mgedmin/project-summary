@@ -137,6 +137,7 @@ class Configuration(object):
         fetch = False
         pull = False
         gha-workflow-name = build
+        gha-workflow-filename = build.yml
         appveyor-account =
         jenkins-url =
         jenkins-jobs = {name}
@@ -176,6 +177,10 @@ class Configuration(object):
     @reify
     def gha_workflow_name(self) -> str:
         return self._config.get('project-summary', 'gha-workflow-name')
+
+    @reify
+    def gha_workflow_filename(self) -> str:
+        return self._config.get('project-summary', 'gha-workflow-filename')
 
     @reify
     def appveyor_account(self) -> str:
@@ -568,16 +573,21 @@ class Project:
             return None
         # I'm using a fixed workflow name for now, but it should be possible
         # to dig it out from the YAML file (the top-level `name` key).
-        template = 'https://github.com/{owner}/{name}/workflows/{gha_workflow_name}/badge.svg?branch={branch}'
-        return template.format(name=self.name, owner=self.owner, branch=self.branch,
-                               gha_workflow_name=self.config.gha_workflow_name)
+        template = 'https://github.com/{owner}/{name}/actions/workflows/{gha_workflow_filename}/badge.svg?branch={branch}'
+        return template.format(
+            name=self.name,
+            owner=self.owner,
+            branch=self.branch,
+            gha_workflow_filename=self.config.gha_workflow_filename,
+        )
 
     @reify
     def github_actions_url(self) -> Optional[str]:
         if not self.uses_github_actions:
             return None
-        return 'https://github.com/{owner}/{name}/actions'.format(name=self.name,
-                                                                  owner=self.owner)
+        return 'https://github.com/{owner}/{name}/actions'.format(
+            name=self.name, owner=self.owner
+        )
 
     @reify
     def github_actions_status(self) -> Optional[str]:

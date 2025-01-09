@@ -986,7 +986,7 @@ def test_Project_github_actions_urls_github(project):
     project.name = 'example'
     project.branch = 'main'
     project.uses_github_actions = True
-    assert project.github_actions_image_url == 'https://github.com/mgedmin/example/workflows/build/badge.svg?branch=main'
+    assert project.github_actions_image_url == 'https://github.com/mgedmin/example/actions/workflows/build.yml/badge.svg?branch=main'
     assert project.github_actions_url == 'https://github.com/mgedmin/example/actions'
 
 
