@@ -1,0 +1,4 @@
+# omit minified assets from git grep please
+*.min.js   binary
+*.min.css  binary
+*.css.map  binary
