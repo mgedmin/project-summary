@@ -46,10 +46,13 @@ bin/summary: setup.py requirements.txt | bin/pip
 	ln -sfr .venv/bin/summary bin/
 	@touch -c $@
 
-bin/pip: | bin
+bin/pip: | bin .venv/bin/python
+	ln -sfr .venv/bin/pip bin/
+
+.venv/bin/python:
+	@rm -rf .venv
 	virtualenv -p python3 .venv
 	.venv/bin/pip install -U pip
-	ln -sfr .venv/bin/pip bin/
 
 bin/bower: | bin
 	npm install bower
