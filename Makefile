@@ -42,6 +42,7 @@ bin:
 	mkdir bin
 
 bin/summary: setup.py requirements.txt | bin/pip
+	bin/pip install -U pip
 	bin/pip install -e . -c requirements.txt
 	ln -sfr .venv/bin/summary bin/
 	@touch -c $@
