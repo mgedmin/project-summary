@@ -884,6 +884,10 @@ def html(tag: Optional[str], body: Optional[str] = '', **kw: Optional[str]) -> m
     return markupsafe.Markup(f'<{tag}{attrs}>{markupsafe.escape(body)}</{tag}>')
 
 
+def css_class(*args: Optional[str]) -> Optional[str]:
+    return ' '.join(c for c in args if c) or None
+
+
 #
 # Report generation
 #
@@ -976,7 +980,8 @@ class Column:
     title: Optional[str] = None
     title_tooltip: Optional[str] = None
     title_narrow: Optional[str] = None
-    css_class: Optional[str] = None
+    css_class: Optional[str] = None  # used as a css selector
+    extra_css_class: Optional[str] = None  # not used as a css selector
     css_rules = CSS('''
     % if column.align:
       #${page.name} th.${css_class},
@@ -1049,14 +1054,24 @@ class Column:
         return html('col', width=self.width)
 
     def th(self) -> markupsafe.Markup:
-        return html('th', self.title, class_=self.css_class,
-                    title=self.title_tooltip)
+        return html(
+            'th',
+            self.title,
+            class_=css_class(self.css_class, self.extra_css_class),
+            title=self.title_tooltip,
+        )
 
     def td(self, project: Project) -> markupsafe.Markup:
-        return html('td', self.inner_html(project), class_=self.css_class,
-                    title=self.tooltip(project),
-                    **{f'data-{item}': value
-                       for item, value in self.get_data(project).items()})
+        return html(
+            'td',
+            self.inner_html(project),
+            class_=css_class(self.css_class, self.extra_css_class),
+            title=self.tooltip(project),
+            **{
+                f'data-{item}': value
+                for item, value in self.get_data(project).items()
+            },
+        )
 
     def tooltip(self, project: Project) -> Optional[str]:
         return None
@@ -1301,6 +1316,8 @@ class PullsColumn(DataColumn):
 
 class PythonSupportColumn(Column):
     css_rules = Column.css_rules + CSS('''
+      #${page.name} th.eol,
+      #${page.name} td.eol { background-color: #f5f5f5; }
       #${page.name} span.no,
       #${page.name} span.yes {
         padding: 2px 4px 3px 4px;
@@ -1324,8 +1341,12 @@ class PythonSupportColumn(Column):
         super().__init__(title=ver, **kwargs)
         self.title_narrow = ver if ver.startswith('PyPy') else f"Python {ver}"
         self.ver = ver
+        self.is_eol = False
         if ver in PYTHON_EOL_DATE:
             self.title_tooltip = f"Supported until {PYTHON_EOL_DATE[ver]}"
+            self.is_eol = str(datetime.date.today()) >= PYTHON_EOL_DATE[ver]
+        if self.is_eol:
+            self.extra_css_class = 'eol'
 
     def inner_html(self, project: Project) -> Markup:
         supported = self.ver in project.python_versions
