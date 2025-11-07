@@ -24,17 +24,13 @@ from typing import (
     Any,
     Callable,
     Collection,
-    Dict,
     Iterable,
     Iterator,
-    List,
     NamedTuple,
-    Optional,
     Sequence,
     TextIO,
     Tuple,
     TypeVar,
-    Union,
 )
 from xml.etree import ElementTree
 
@@ -69,11 +65,11 @@ log = logging.getLogger('project-summary')
 T = TypeVar('T')
 
 
-def collect(fn: Callable[..., Iterable[T]]) -> Callable[..., List[T]]:
+def collect(fn: Callable[..., Iterable[T]]) -> Callable[..., list[T]]:
     return functools.wraps(fn)(lambda *a, **kw: list(fn(*a, **kw)))
 
 
-def format_cmd(cmd: Sequence[str], cwd: Optional[str] = None) -> str:
+def format_cmd(cmd: Sequence[str], cwd: str | None = None) -> str:
     if cwd:
         return 'cd %s && %s' % (cwd, ' '.join(cmd))
     else:
@@ -152,11 +148,11 @@ class Configuration(object):
         self._config = cp
 
     @cached_property
-    def projects(self) -> List[str]:
+    def projects(self) -> list[str]:
         return self._config.get('project-summary', 'projects').split()
 
     @cached_property
-    def ignore(self) -> List[str]:
+    def ignore(self) -> list[str]:
         return self._config.get('project-summary', 'ignore').split()
 
     @cached_property
@@ -188,7 +184,7 @@ class Configuration(object):
         return self._config.get('project-summary', 'jenkins-url').rstrip('/')
 
     @cached_property
-    def jenkins_jobs(self) -> List[JenkinsJobConfig]:
+    def jenkins_jobs(self) -> list[JenkinsJobConfig]:
         return [
             JenkinsJobConfig(*job.split(None, 1))
             for job in self._config.get('project-summary', 'jenkins-jobs').splitlines()
@@ -203,7 +199,7 @@ class Configuration(object):
         )
 
     @cached_property
-    def pypi_name_map(self) -> Dict[str, str]:
+    def pypi_name_map(self) -> dict[str, str]:
         pypi_name_map = {}
         for line in self._config.get('project-summary', 'pypi-name-map').splitlines():
             k, _, v = line.partition(':')
@@ -214,7 +210,7 @@ class Configuration(object):
         return pypi_name_map
 
     @cached_property
-    def python_versions(self) -> List[str]:
+    def python_versions(self) -> list[str]:
         return self._config.get('project-summary', 'python-versions').split()
 
 
@@ -233,7 +229,7 @@ class Cache:
             self._set(key, value, expires)
         return value
 
-    def _get(self, key: str) -> Tuple[Any, Optional[datetime.datetime]]:
+    def _get(self, key: str) -> Tuple[Any, datetime.datetime | None]:
         return (None, None)
 
     def _set(self, key: str, value: Any, expires: datetime.datetime) -> None:
@@ -243,7 +239,7 @@ class Cache:
 class MemoryCache(Cache):
 
     def __init__(self) -> None:
-        self.cached: Dict[str, Any] = {}
+        self.cached: dict[str, Any] = {}
 
     def _get(self, key):
         return self.cached.get(key, (None, None))
@@ -314,7 +310,7 @@ def github_request(url: str, session: requests.Session) -> requests.Response:
     return res
 
 
-def github_request_list(url: str, session: requests.Session, batch_size: int = 100) -> List[Dict]:
+def github_request_list(url: str, session: requests.Session, batch_size: int = 100) -> list[dict]:
     res = github_request('%s?per_page=%d' % (url, batch_size), session)
     result = res.json()
     assert isinstance(result, list), result
@@ -335,7 +331,7 @@ def github_request_list(url: str, session: requests.Session, batch_size: int = 1
 # Data extraction
 #
 
-def get_repos(config: Configuration) -> List[str]:
+def get_repos(config: Configuration) -> list[str]:
     return sorted(
         dirname
         for path in config.projects
@@ -344,14 +340,14 @@ def get_repos(config: Configuration) -> List[str]:
     )
 
 
-def get_repo_url(repo_path: str) -> Optional[str]:
+def get_repo_url(repo_path: str) -> str | None:
     url = pipe("git", "ls-remote", "--get-url", "origin", cwd=repo_path).strip()
     if url == 'origin':
         return None
     return url
 
 
-def normalize_github_url(url: Optional[str]) -> Optional[str]:
+def normalize_github_url(url: str | None) -> str | None:
     if not url:
         return url
     if url.startswith('git://github.com/'):
@@ -424,12 +420,12 @@ def get_date_of_tag(repo_path: str, tag: str) -> str:
     return pipe("git", "log", "-1", "--format=%ai", tag, cwd=repo_path).strip()
 
 
-def get_pending_commits(repo_path: str, last_tag: str, branch: str = 'master') -> List[str]:
+def get_pending_commits(repo_path: str, last_tag: str, branch: str = 'master') -> list[str]:
     return pipe("git", "log", "--oneline", "{}..origin/{}".format(last_tag, branch),
                 cwd=repo_path).splitlines()
 
 
-def get_supported_python_versions(repo_path: str) -> List[str]:
+def get_supported_python_versions(repo_path: str) -> list[str]:
     classifiers = pipe(sys.executable, "setup.py", "--classifiers",
                        cwd=repo_path, stderr=subprocess.PIPE).splitlines()
     prefix = 'Programming Language :: Python :: '
@@ -474,7 +470,7 @@ class Project:
             getattr(self, attr)
 
     @cached_property
-    def url(self) -> Optional[str]:
+    def url(self) -> str | None:
         return normalize_github_url(get_repo_url(self.working_tree))
 
     @cached_property
@@ -530,11 +526,11 @@ class Project:
         return get_date_of_tag(self.working_tree, self.last_tag)
 
     @cached_property
-    def pending_commits(self) -> List[str]:
+    def pending_commits(self) -> list[str]:
         return get_pending_commits(self.working_tree, self.last_tag, self.branch)
 
     @cached_property
-    def owner(self) -> Optional[str]:
+    def owner(self) -> str | None:
         if self.is_on_github:
             assert self.url is not None
             return get_project_owner(self.url)
@@ -565,7 +561,7 @@ class Project:
             return os.path.basename(self.working_tree)
 
     @cached_property
-    def compare_url(self) -> Optional[str]:
+    def compare_url(self) -> str | None:
         if not self.is_on_github:
             return None
         return '{base}/compare/{tag}...{branch}'.format(base=self.url,
@@ -573,7 +569,7 @@ class Project:
                                                         tag=self.last_tag)
 
     @cached_property
-    def github_actions_image_url(self) -> Optional[str]:
+    def github_actions_image_url(self) -> str | None:
         if not self.uses_github_actions:
             return None
         template = 'https://github.com/{owner}/{name}/actions/workflows/{gha_workflow_filename}/badge.svg?branch={branch}'
@@ -585,7 +581,7 @@ class Project:
         )
 
     @cached_property
-    def github_actions_url(self) -> Optional[str]:
+    def github_actions_url(self) -> str | None:
         if not self.uses_github_actions:
             return None
         return 'https://github.com/{owner}/{name}/actions'.format(
@@ -593,7 +589,7 @@ class Project:
         )
 
     @cached_property
-    def github_actions_status(self) -> Optional[str]:
+    def github_actions_status(self) -> str | None:
         if not self.uses_github_actions:
             return None
         assert self.github_actions_image_url is not None
@@ -602,7 +598,7 @@ class Project:
         return self._parse_svg_text(res.text, skip_words={self.config.gha_workflow_name})
 
     @cached_property
-    def travis_image_url(self) -> Optional[str]:
+    def travis_image_url(self) -> str | None:
         if not self.uses_travis:
             return None
         # Travis has 20px-high SVG images in the new (flat) style
@@ -610,14 +606,14 @@ class Project:
         return template.format(name=self.name, owner=self.owner, branch=self.branch)
 
     @cached_property
-    def travis_url(self) -> Optional[str]:
+    def travis_url(self) -> str | None:
         if not self.uses_travis:
             return None
         return 'https://travis-ci.com/{owner}/{name}'.format(name=self.name,
                                                              owner=self.owner)
 
     @cached_property
-    def travis_status(self) -> Optional[str]:
+    def travis_status(self) -> str | None:
         if not self.uses_travis:
             return None
         assert self.travis_image_url is not None
@@ -642,21 +638,21 @@ class Project:
         return ' '.join(status)
 
     @cached_property
-    def appveyor_image_url(self) -> Optional[str]:
+    def appveyor_image_url(self) -> str | None:
         if not self.uses_appveyor:
             return None
         template = 'https://ci.appveyor.com/api/projects/status/github/{owner}/{name}?branch={branch}&svg=true'
         return template.format(name=self.name, owner=self.owner, branch=self.branch)
 
     @cached_property
-    def appveyor_url(self) -> Optional[str]:
+    def appveyor_url(self) -> str | None:
         if not self.uses_appveyor:
             return None
         return 'https://ci.appveyor.com/project/{account}/{name}/branch/{branch}'.format(
             name=self.name, account=self.config.appveyor_account, branch=self.branch)
 
     @cached_property
-    def appveyor_status(self) -> Optional[str]:
+    def appveyor_status(self) -> str | None:
         if not self.uses_appveyor:
             return None
         assert self.appveyor_image_url is not None
@@ -664,7 +660,7 @@ class Project:
         return self._parse_svg_text(res.text, skip_words={'build'})
 
     @cached_property
-    def coveralls_image_url(self) -> Optional[str]:
+    def coveralls_image_url(self) -> str | None:
         if not self.uses_coveralls:
             return None
         # 18px-high PNG
@@ -676,14 +672,14 @@ class Project:
         return template.format(name=self.name, owner=self.owner, branch=self.branch)
 
     @cached_property
-    def coveralls_url(self) -> Optional[str]:
+    def coveralls_url(self) -> str | None:
         if not self.uses_coveralls:
             return None
         return 'https://coveralls.io/r/{owner}/{name}?branch={branch}'.format(
             name=self.name, owner=self.owner, branch=self.branch)
 
     @cached_property
-    def coverage_number(self) -> Optional[int]:
+    def coverage_number(self) -> int | None:
         url = self.coveralls_image_url
         if not url:
             return None
@@ -705,7 +701,7 @@ class Project:
         else:
             return format.format(self.coverage_number)
 
-    def get_jenkins_image_url(self, job_config: JenkinsJobConfig = JenkinsJobConfig()) -> Optional[str]:
+    def get_jenkins_image_url(self, job_config: JenkinsJobConfig = JenkinsJobConfig()) -> str | None:
         if not self.uses_jenkins:
             return None
         return '{base}/job/{name}/badge/icon'.format(
@@ -713,7 +709,7 @@ class Project:
             name=job_config.name_template.format(name=self.jenkins_job),
         )
 
-    def get_jenkins_url(self, job_config: JenkinsJobConfig = JenkinsJobConfig()) -> Optional[str]:
+    def get_jenkins_url(self, job_config: JenkinsJobConfig = JenkinsJobConfig()) -> str | None:
         if not self.uses_jenkins:
             return None
         return '{base}/job/{name}/'.format(
@@ -721,7 +717,7 @@ class Project:
             name=job_config.name_template.format(name=self.jenkins_job),
         )
 
-    def get_jenkins_status(self, job_config: JenkinsJobConfig = JenkinsJobConfig()) -> Optional[str]:
+    def get_jenkins_status(self, job_config: JenkinsJobConfig = JenkinsJobConfig()) -> str | None:
         if not self.uses_jenkins:
             return None
         url = self.get_jenkins_image_url(job_config)
@@ -730,11 +726,11 @@ class Project:
         return self._parse_svg_text(res.text, skip_words={'build'})
 
     @cached_property
-    def python_versions(self) -> List[str]:
+    def python_versions(self) -> list[str]:
         return get_supported_python_versions(self.working_tree)
 
     @cached_property
-    def github_issues_and_pulls(self) -> List[Dict]:
+    def github_issues_and_pulls(self) -> list[dict]:
         if not self.is_on_github:
             return []
         url = 'https://api.github.com/repos/{owner}/{name}/issues'.format(
@@ -742,12 +738,12 @@ class Project:
         return github_request_list(url, self.session)
 
     @cached_property
-    def github_issues(self) -> List[Dict]:
+    def github_issues(self) -> list[dict]:
         return [issue for issue in self.github_issues_and_pulls
                 if 'pull_request' not in issue]
 
     @cached_property
-    def github_pulls(self) -> List[Dict]:
+    def github_pulls(self) -> list[dict]:
         return [issue for issue in self.github_issues_and_pulls
                 if 'pull_request' in issue]
 
@@ -760,7 +756,7 @@ class Project:
         return sum(1 for issue in self.github_issues if not issue['labels'])
 
     @cached_property
-    def issues_url(self) -> Optional[str]:
+    def issues_url(self) -> str | None:
         if not self.is_on_github:
             return None
         return '{base}/issues'.format(base=self.url)
@@ -774,7 +770,7 @@ class Project:
         return sum(1 for issue in self.github_pulls if not issue['labels'])
 
     @cached_property
-    def pulls_url(self) -> Optional[str]:
+    def pulls_url(self) -> str | None:
         if not self.is_on_github:
             return None
         return '{base}/pulls'.format(base=self.url)
@@ -784,7 +780,7 @@ class Project:
         return f'https://pypistats.org/packages/{self.pypi_name}'
 
     @cached_property
-    def downloads(self) -> Optional[int]:
+    def downloads(self) -> int | None:
         # https://pypistats.org/api/#etiquette:
         # - the data is updated once daily and should be cached
         # - there's IP-based rate limiting
@@ -830,7 +826,7 @@ def _filter_projects(projects: Iterable[Project], config: Configuration) -> Iter
 # Templating
 #
 
-Markup = Union[str, markupsafe.Markup]
+Markup = str | markupsafe.Markup
 
 
 def mako_error_handler(context, error) -> None:
@@ -844,7 +840,7 @@ def mako_error_handler(context, error) -> None:
     rich_tb = mako.exceptions.RichTraceback()
     rich_iter = iter(rich_tb.traceback)
     tb = sys.exc_info()[-1]
-    source: Dict[str, List[str]] = {}
+    source: dict[str, list[str]] = {}
     annotated = set()
     while tb is not None:
         cur_rich = next(rich_iter)
@@ -875,7 +871,7 @@ def Template(*args, **kw) -> mako.template.Template:
                                   *args, **kw)
 
 
-def html(tag: Optional[str], body: Optional[str] = '', **kw: Optional[str]) -> markupsafe.Markup:
+def html(tag: str | None, body: str | None = '', **kw: str | None) -> markupsafe.Markup:
     if body is None:
         body = ''
     if not tag:
@@ -888,7 +884,7 @@ def html(tag: Optional[str], body: Optional[str] = '', **kw: Optional[str]) -> m
     return markupsafe.Markup(f'<{tag}{attrs}>{markupsafe.escape(body)}</{tag}>')
 
 
-def css_class(*args: Optional[str]) -> Optional[str]:
+def css_class(*args: str | None) -> str | None:
     return ' '.join(c for c in args if c) or None
 
 
@@ -920,7 +916,7 @@ class Pages:
     def __iter__(self) -> Iterator['Page']:
         return iter(self.pages)
 
-    def stylesheet(self, variant: Optional[str] = None) -> markupsafe.Markup:
+    def stylesheet(self, variant: str | None = None) -> markupsafe.Markup:
         seen = set()
         styles = []
         for page in self.pages:
@@ -934,7 +930,7 @@ class Pages:
 
 class Page:
 
-    def __init__(self, title: str, columns: List['Column']) -> None:
+    def __init__(self, title: str, columns: list['Column']) -> None:
         self.title = title
         self.name = '-'.join(title.lower().split())
         self.columns = columns
@@ -976,16 +972,16 @@ def strip_leading_newline_and_trailing_spaces(rules: str) -> str:
 JS = strip_leading_newline_and_trailing_spaces
 
 
-def CSS(rules: str) -> List[str]:
+def CSS(rules: str) -> list[str]:
     return [strip_leading_newline_and_trailing_spaces(rules)]
 
 
 class Column:
-    title: Optional[str] = None
-    title_tooltip: Optional[str] = None
-    title_narrow: Optional[str] = None
-    css_class: Optional[str] = None  # used as a css selector
-    extra_css_class: Optional[str] = None  # not used as a css selector
+    title: str | None = None
+    title_tooltip: str | None = None
+    title_narrow: str | None = None
+    css_class: str | None = None  # used as a css selector
+    extra_css_class: str | None = None  # not used as a css selector
     css_rules = CSS('''
     % if column.align:
       #${page.name} th.${css_class},
@@ -999,15 +995,15 @@ class Column:
         #${page.name} td${discrim} { text-align: left; }
     % endif
     ''')
-    js_sort_rule: Optional[Tuple[str, str]] = None
+    js_sort_rule: Tuple[str, str] | None = None
 
     def __init__(
         self,
-        title: Optional[str] = None,
+        title: str | None = None,
         *,
-        css_class: Optional[str] = None,
-        width: Optional[str] = None,
-        align: Optional[str] = None,
+        css_class: str | None = None,
+        width: str | None = None,
+        align: str | None = None,
     ) -> None:
         if title is not None:
             self.title = title
@@ -1024,7 +1020,7 @@ class Column:
             sorter += ","
         return f'{index}: {sorter:<20} // {comment}'
 
-    def stylesheet_rules(self, page: Page, variant: Optional[str] = None) -> List[Markup]:
+    def stylesheet_rules(self, page: Page, variant: str | None = None) -> list[Markup]:
         if variant:
             rules = getattr(self, f'css_rules_{variant}')
         else:
@@ -1077,10 +1073,10 @@ class Column:
             },
         )
 
-    def tooltip(self, project: Project) -> Optional[str]:
+    def tooltip(self, project: Project) -> str | None:
         return None
 
-    def get_data(self, project: Project) -> Dict[str, str]:
+    def get_data(self, project: Project) -> dict[str, str]:
         return {}
 
     def inner_html(self, project: Project) -> Markup:
@@ -1133,9 +1129,9 @@ class ChangesColumn(Column):
 
 
 class StatusTuple(NamedTuple):
-    url: Optional[str]
-    image_url: Optional[str]
-    status: Optional[str]
+    url: str | None
+    image_url: str | None
+    status: str | None
 
 
 class StatusColumn(Column):
@@ -1239,7 +1235,7 @@ class CoverallsColumn(StatusColumn):
     title_narrow = 'Coveralls status'
     js_sort_rule = ('sortCoverage', 'coverage percentage in data attribute')
 
-    def get_data(self, project: Project) -> Dict[str, str]:
+    def get_data(self, project: Project) -> dict[str, str]:
         return dict(
             coverage=project.coverage(),
         )
@@ -1272,14 +1268,14 @@ class DataColumn(Column):
             )),
         )
 
-    def get_data(self, project: Project) -> Dict[str, str]:
+    def get_data(self, project: Project) -> dict[str, str]:
         new, total = self.get_counts(project)
         return dict(
             new=str(new),
             total=str(total),
         )
 
-    def get_url(self, project: Project) -> Optional[str]:
+    def get_url(self, project: Project) -> str | None:
         raise NotImplementedError
 
     def get_counts(self, project: Project) -> Tuple[int, int]:
@@ -1292,7 +1288,7 @@ class IssuesColumn(DataColumn):
     css_class = 'issues'
     js_sort_rule = ('sortIssues', 'issue counts in data attributes')
 
-    def get_url(self, project: Project) -> Optional[str]:
+    def get_url(self, project: Project) -> str | None:
         return project.issues_url
 
     def get_counts(self, project: Project) -> Tuple[int, int]:
@@ -1308,7 +1304,7 @@ class PullsColumn(DataColumn):
     css_class = 'pulls'
     js_sort_rule = ('sortIssues', 'PR counts in data attributes')
 
-    def get_url(self, project: Project) -> Optional[str]:
+    def get_url(self, project: Project) -> str | None:
         return project.pulls_url
 
     def get_counts(self, project: Project) -> Tuple[int, int]:
@@ -1682,7 +1678,7 @@ def main() -> None:
         print_report(projects, args.verbose)
 
 
-def print_report(projects: List[Project], verbose: int, file: Optional[TextIO] = None) -> None:
+def print_report(projects: list[Project], verbose: int, file: TextIO | None = None) -> None:
     # https://github.com/python/mypy/issues/8928
     print_ = functools.partial(print, file=file if file is not None else sys.stdout)
     for project in projects:
@@ -1704,7 +1700,7 @@ def print_report(projects: List[Project], verbose: int, file: Optional[TextIO] =
             print_("")
 
 
-def print_html_report(projects: List[Project], config: Configuration, filename: Optional[str] = None) -> None:
+def print_html_report(projects: list[Project], config: Configuration, filename: str | None = None) -> None:
     # I want atomicity: don't destroy old .html file if an exception happens
     # during rendering.
     html = template.render_unicode(
@@ -1719,7 +1715,7 @@ def print_html_report(projects: List[Project], config: Configuration, filename: 
         print(html)
 
 
-def symlink_assets(filename: Optional[str] = None) -> None:
+def symlink_assets(filename: str | None = None) -> None:
     if filename and filename != '-':
         symlink = pathlib.Path(filename).with_name('assets')
         if not symlink.exists():
