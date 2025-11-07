@@ -15,7 +15,7 @@ This is a script to help:
 - it runs every hour
 - pulls the latest changes for all the projects checked out in
   /srv/project-summary/
-- finds the latest tag in each Git repo and counts commit since them
+- finds the latest tag in each Git repo and counts commits since them
 - collects some other data from the public GitHub API (such as the number of
   open issues) and other sources (such as Python version support classifiers in
   setup.py).
@@ -43,6 +43,7 @@ Setup
 Alternative setup (Jenkins)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+- assumes you already have Jenkins jobs for all the projects
 - set up a Jenkins job to build this hourly
   (make && bin/summary --html -o index.html)
 - create /var/www/projects.gedmin.as/
