@@ -105,7 +105,7 @@ def to_seconds(value: str) -> int:
     for multiplier, suffixes in units.items():
         for suffix in suffixes:
             if s.endswith(suffix):
-                prefix = s[:-len(suffix)]
+                prefix = s.removesuffix(suffix)
                 if prefix.isdigit():
                     return int(prefix) * multiplier
     raise ValueError('bad time: %s' % value)
@@ -351,13 +351,12 @@ def normalize_github_url(url: str | None) -> str | None:
     if not url:
         return url
     if url.startswith('git://github.com/'):
-        url = 'https://github.com/' + url[len('git://github.com/'):]
+        url = 'https://github.com/' + url.removeprefix('git://github.com/')
     elif url.startswith('git@github.com:'):
-        url = 'https://github.com/' + url[len('git@github.com:'):]
+        url = 'https://github.com/' + url.removeprefix('git@github.com:')
     if not url.startswith('https://github.com/'):
         return url
-    if url.endswith('.git'):
-        url = url[:-len('.git')]
+    url = url.removesuffix('.git')
     return url
 
 
@@ -381,14 +380,11 @@ def get_branch_name(repo_path: str) -> str:
     for line in pipe("git", "show-ref", cwd=repo_path, stderr=subprocess.PIPE).splitlines():
         if line.startswith(commit):
             name = line.split()[1]
-            if name.startswith('refs/'):
-                name = name[len('refs/'):]
+            name = name.removeprefix('refs/')
             if name.startswith('heads/'):
-                name = name[len('heads/'):]
+                name = name.removeprefix('heads/')
             elif name.startswith('remotes/'):
-                name = name[len('remotes/'):]
-                if name.startswith('origin/'):
-                    name = name[len('origin/'):]
+                name = name.removeprefix('remotes/').removeprefix('origin/')
             if name != 'HEAD':
                 names.add(name)
     # if several branches point to the same commit, we must've done a
@@ -404,8 +400,7 @@ def get_branch_name(repo_path: str) -> str:
     # github notifications again!
     for line in pipe("git", "branch", "-r", "--contains", name, cwd=repo_path, stderr=subprocess.PIPE).splitlines():
         name = line[2:].strip()
-        if name.startswith('origin/'):
-            name = name[len('origin/'):]
+        name = name.removeprefix('origin/')
         if not name.startswith('HEAD'):
             return name
     return '(detached)'
@@ -432,11 +427,11 @@ def get_supported_python_versions(repo_path: str) -> list[str]:
     impl_prefix = 'Programming Language :: Python :: Implementation :: '
     cpython = impl_prefix + 'CPython'
     return [
-        s[len(prefix):]
+        s.removeprefix(prefix)
         for s in classifiers
         if s.startswith(prefix) and s[len(prefix):len(prefix) + 1].isdigit()
     ] + [
-        s[len(impl_prefix):]
+        s.removeprefix(impl_prefix)
         for s in classifiers
         if s.startswith(impl_prefix) and s != cpython
     ]
@@ -690,7 +685,7 @@ class Project:
         PREFIX = 'https://s3.amazonaws.com/assets.coveralls.io/badges/coveralls_'
         SUFFIX = '.svg'
         if location.startswith(PREFIX) and location.endswith(SUFFIX):
-            coverage = location[len(PREFIX):-len(SUFFIX)]
+            coverage = location.removeprefix(PREFIX).removesuffix(SUFFIX)
             if coverage.isdigit():  # could be 'unknown'
                 return int(coverage)
         return None
