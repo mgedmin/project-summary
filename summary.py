@@ -19,12 +19,12 @@ import sys
 import time
 import traceback
 from configparser import ConfigParser
+from functools import cached_property
 from typing import (
     Any,
     Callable,
     Collection,
     Dict,
-    Generic,
     Iterable,
     Iterator,
     List,
@@ -49,8 +49,15 @@ import requests_cache
 from requests_cache.backends.sqlite import SQLiteDict
 
 
+# Yes, there are imports of both httpx and requests.  I use requests because
+# requests_cache exists.  I need httpx because pypistats uses httpx and I want
+# to catch exceptions.  I would like to switch to httpx everywhere, once I find
+# a replacement for requests_cache.
+
+
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.18.0'
+__version__ = '0.19.0'
+
 
 log = logging.getLogger('project-summary')
 
@@ -60,16 +67,6 @@ log = logging.getLogger('project-summary')
 #
 
 T = TypeVar('T')
-
-
-class reify(Generic[T]):
-    def __init__(self, fn: Callable[[Any], T]) -> None:
-        self.fn = fn
-
-    def __get__(self, obj, cls=None) -> T:
-        value = self.fn(obj)
-        obj.__dict__[self.fn.__name__] = value
-        return value
 
 
 def collect(fn: Callable[..., Iterable[T]]) -> Callable[..., List[T]]:
@@ -154,43 +151,43 @@ class Configuration(object):
         cp.read([filename])
         self._config = cp
 
-    @reify
+    @cached_property
     def projects(self) -> List[str]:
         return self._config.get('project-summary', 'projects').split()
 
-    @reify
+    @cached_property
     def ignore(self) -> List[str]:
         return self._config.get('project-summary', 'ignore').split()
 
-    @reify
+    @cached_property
     def skip_branches(self) -> bool:
         return self._config.getboolean('project-summary', 'skip-branches')
 
-    @reify
+    @cached_property
     def fetch(self) -> bool:
         return self._config.getboolean('project-summary', 'fetch')
 
-    @reify
+    @cached_property
     def pull(self) -> bool:
         return self._config.getboolean('project-summary', 'pull')
 
-    @reify
+    @cached_property
     def gha_workflow_name(self) -> str:
         return self._config.get('project-summary', 'gha-workflow-name')
 
-    @reify
+    @cached_property
     def gha_workflow_filename(self) -> str:
         return self._config.get('project-summary', 'gha-workflow-filename')
 
-    @reify
+    @cached_property
     def appveyor_account(self) -> str:
         return self._config.get('project-summary', 'appveyor-account')
 
-    @reify
+    @cached_property
     def jenkins_url(self) -> str:
         return self._config.get('project-summary', 'jenkins-url').rstrip('/')
 
-    @reify
+    @cached_property
     def jenkins_jobs(self) -> List[JenkinsJobConfig]:
         return [
             JenkinsJobConfig(*job.split(None, 1))
@@ -198,14 +195,14 @@ class Configuration(object):
             if job.strip()
         ] if self.jenkins_url else []
 
-    @reify
+    @cached_property
     def footer(self) -> markupsafe.Markup:
         return markupsafe.Markup(
             self._config.get('project-summary', 'footer')
             .replace('{last_update}', arrow.now().format())
         )
 
-    @reify
+    @cached_property
     def pypi_name_map(self) -> Dict[str, str]:
         pypi_name_map = {}
         for line in self._config.get('project-summary', 'pypi-name-map').splitlines():
@@ -216,7 +213,7 @@ class Configuration(object):
                 pypi_name_map[k] = v
         return pypi_name_map
 
-    @reify
+    @cached_property
     def python_versions(self) -> List[str]:
         return self._config.get('project-summary', 'python-versions').split()
 
@@ -472,63 +469,63 @@ class Project:
         pipe('git', 'pull', '--prune', cwd=self.working_tree)
 
     def precompute(self, attrs: Sequence[str]) -> None:
-        # trigger all the @reify decorators
+        # trigger all the @cached_property decorators
         for attr in attrs:
             getattr(self, attr)
 
-    @reify
+    @cached_property
     def url(self) -> Optional[str]:
         return normalize_github_url(get_repo_url(self.working_tree))
 
-    @reify
+    @cached_property
     def is_on_github(self) -> bool:
         if not self.url:
             return False
         return self.url.startswith('https://github.com/')
 
-    @reify
+    @cached_property
     def uses_github_actions(self) -> bool:
         if not self.is_on_github:
             return False
         return bool(glob.glob(os.path.join(self.working_tree, '.github', 'workflows', '*.yml')))
 
-    @reify
+    @cached_property
     def uses_travis(self) -> bool:
         if not self.is_on_github:
             return False
         return os.path.exists(os.path.join(self.working_tree, '.travis.yml'))
 
-    @reify
+    @cached_property
     def uses_coveralls(self) -> bool:
         return self.uses_travis or self.uses_github_actions
 
-    @reify
+    @cached_property
     def uses_appveyor(self) -> bool:
         if not self.is_on_github or not self.config.appveyor_account:
             return False
         return os.path.exists(os.path.join(self.working_tree, 'appveyor.yml'))
 
-    @reify
+    @cached_property
     def uses_jenkins(self) -> bool:
         return bool(self.config.jenkins_url)
 
-    @reify
+    @cached_property
     def branch(self) -> str:
         return get_branch_name(self.working_tree)
 
-    @reify
+    @cached_property
     def last_tag(self) -> str:
         return get_last_tag(self.working_tree)
 
-    @reify
+    @cached_property
     def last_tag_date(self) -> str:
         return get_date_of_tag(self.working_tree, self.last_tag)
 
-    @reify
+    @cached_property
     def pending_commits(self) -> List[str]:
         return get_pending_commits(self.working_tree, self.last_tag, self.branch)
 
-    @reify
+    @cached_property
     def owner(self) -> Optional[str]:
         if self.is_on_github:
             assert self.url is not None
@@ -536,30 +533,30 @@ class Project:
         else:
             return None
 
-    @reify
+    @cached_property
     def name(self) -> str:
         if self.url:
             return get_project_name(self.url)
         else:
             return os.path.basename(self.working_tree)
 
-    @reify
+    @cached_property
     def pypi_name(self) -> str:
         # XXX: this is nonsense, I should be extracting the name from setup.py
         return self.config.pypi_name_map.get(self.name, self.name)
 
-    @reify
+    @cached_property
     def pypi_url(self) -> str:
         return 'https://pypi.org/project/{name}/'.format(name=self.pypi_name)
 
-    @reify
+    @cached_property
     def jenkins_job(self) -> str:
         if os.path.basename(self.working_tree) == 'workspace':
             return os.path.basename(os.path.dirname(self.working_tree))
         else:
             return os.path.basename(self.working_tree)
 
-    @reify
+    @cached_property
     def compare_url(self) -> Optional[str]:
         if not self.is_on_github:
             return None
@@ -567,7 +564,7 @@ class Project:
                                                         branch=self.branch,
                                                         tag=self.last_tag)
 
-    @reify
+    @cached_property
     def github_actions_image_url(self) -> Optional[str]:
         if not self.uses_github_actions:
             return None
@@ -581,7 +578,7 @@ class Project:
             gha_workflow_filename=self.config.gha_workflow_filename,
         )
 
-    @reify
+    @cached_property
     def github_actions_url(self) -> Optional[str]:
         if not self.uses_github_actions:
             return None
@@ -589,7 +586,7 @@ class Project:
             name=self.name, owner=self.owner
         )
 
-    @reify
+    @cached_property
     def github_actions_status(self) -> Optional[str]:
         if not self.uses_github_actions:
             return None
@@ -597,7 +594,7 @@ class Project:
         res = self._http_get(self.github_actions_image_url)
         return self._parse_svg_text(res.text, skip_words={self.config.gha_workflow_name})
 
-    @reify
+    @cached_property
     def travis_image_url(self) -> Optional[str]:
         if not self.uses_travis:
             return None
@@ -605,14 +602,14 @@ class Project:
         template = 'https://api.travis-ci.com/{owner}/{name}.svg?branch={branch}'
         return template.format(name=self.name, owner=self.owner, branch=self.branch)
 
-    @reify
+    @cached_property
     def travis_url(self) -> Optional[str]:
         if not self.uses_travis:
             return None
         return 'https://travis-ci.com/{owner}/{name}'.format(name=self.name,
                                                              owner=self.owner)
 
-    @reify
+    @cached_property
     def travis_status(self) -> Optional[str]:
         if not self.uses_travis:
             return None
@@ -637,21 +634,21 @@ class Project:
                 status.append(text)
         return ' '.join(status)
 
-    @reify
+    @cached_property
     def appveyor_image_url(self) -> Optional[str]:
         if not self.uses_appveyor:
             return None
         template = 'https://ci.appveyor.com/api/projects/status/github/{owner}/{name}?branch={branch}&svg=true'
         return template.format(name=self.name, owner=self.owner, branch=self.branch)
 
-    @reify
+    @cached_property
     def appveyor_url(self) -> Optional[str]:
         if not self.uses_appveyor:
             return None
         return 'https://ci.appveyor.com/project/{account}/{name}/branch/{branch}'.format(
             name=self.name, account=self.config.appveyor_account, branch=self.branch)
 
-    @reify
+    @cached_property
     def appveyor_status(self) -> Optional[str]:
         if not self.uses_appveyor:
             return None
@@ -659,7 +656,7 @@ class Project:
         res = self._http_get(self.appveyor_image_url)
         return self._parse_svg_text(res.text, skip_words={'build'})
 
-    @reify
+    @cached_property
     def coveralls_image_url(self) -> Optional[str]:
         if not self.uses_coveralls:
             return None
@@ -671,14 +668,14 @@ class Project:
         # template = 'https://img.shields.io/coveralls/{owner}/{name}.svg?style=flat'
         return template.format(name=self.name, owner=self.owner, branch=self.branch)
 
-    @reify
+    @cached_property
     def coveralls_url(self) -> Optional[str]:
         if not self.uses_coveralls:
             return None
         return 'https://coveralls.io/r/{owner}/{name}?branch={branch}'.format(
             name=self.name, owner=self.owner, branch=self.branch)
 
-    @reify
+    @cached_property
     def coverage_number(self) -> Optional[int]:
         url = self.coveralls_image_url
         if not url:
@@ -725,11 +722,11 @@ class Project:
         res = self._http_get(url)
         return self._parse_svg_text(res.text, skip_words={'build'})
 
-    @reify
+    @cached_property
     def python_versions(self) -> List[str]:
         return get_supported_python_versions(self.working_tree)
 
-    @reify
+    @cached_property
     def github_issues_and_pulls(self) -> List[Dict]:
         if not self.is_on_github:
             return []
@@ -737,49 +734,49 @@ class Project:
             owner=self.owner, name=self.name)
         return github_request_list(url, self.session)
 
-    @reify
+    @cached_property
     def github_issues(self) -> List[Dict]:
         return [issue for issue in self.github_issues_and_pulls
                 if 'pull_request' not in issue]
 
-    @reify
+    @cached_property
     def github_pulls(self) -> List[Dict]:
         return [issue for issue in self.github_issues_and_pulls
                 if 'pull_request' in issue]
 
-    @reify
+    @cached_property
     def open_issues_count(self) -> int:
         return len(self.github_issues)
 
-    @reify
+    @cached_property
     def unlabeled_open_issues_count(self) -> int:
         return sum(1 for issue in self.github_issues if not issue['labels'])
 
-    @reify
+    @cached_property
     def issues_url(self) -> Optional[str]:
         if not self.is_on_github:
             return None
         return '{base}/issues'.format(base=self.url)
 
-    @reify
+    @cached_property
     def open_pulls_count(self) -> int:
         return len(self.github_pulls)
 
-    @reify
+    @cached_property
     def unlabeled_open_pulls_count(self) -> int:
         return sum(1 for issue in self.github_pulls if not issue['labels'])
 
-    @reify
+    @cached_property
     def pulls_url(self) -> Optional[str]:
         if not self.is_on_github:
             return None
         return '{base}/pulls'.format(base=self.url)
 
-    @reify
+    @cached_property
     def pypistats_url(self) -> str:
         return f'https://pypistats.org/packages/{self.pypi_name}'
 
-    @reify
+    @cached_property
     def downloads(self) -> Optional[int]:
         # https://pypistats.org/api/#etiquette:
         # - the data is updated once daily and should be cached

@@ -68,7 +68,6 @@ from summary import (
     pluralize,
     print_html_report,
     print_report,
-    reify,
     symlink_assets,
     to_seconds,
 )
@@ -176,56 +175,6 @@ GHA_STATUS_ICON_BUILD_PASSING = '''\
   </g>
 </svg>
 '''
-
-
-class SomethingThatUsesReify:
-
-    computations = 0
-
-    @reify
-    def computo_ergo_sum(self):
-        self.computations += 1
-        return 2 * 2
-
-
-def test_reify(capsys):
-    sth = SomethingThatUsesReify()
-    assert sth.computo_ergo_sum == 4
-    assert sth.computations == 1
-
-
-def test_reify_caches(capsys):
-    sth = SomethingThatUsesReify()
-    assert sth.computo_ergo_sum == 4
-    assert sth.computo_ergo_sum == 4
-    assert sth.computo_ergo_sum == 4
-    assert sth.computations == 1
-
-
-def test_reify_cache_can_be_invalidated(capsys):
-    sth = SomethingThatUsesReify()
-    assert sth.computo_ergo_sum == 4
-    del sth.computo_ergo_sum
-    assert sth.computo_ergo_sum == 4
-    assert sth.computations == 2
-
-
-def test_reify_cache_can_be_overridden(capsys):
-    sth = SomethingThatUsesReify()
-    assert sth.computo_ergo_sum == 4
-    sth.computo_ergo_sum = 5
-    assert sth.computo_ergo_sum == 5
-    assert sth.computations == 1
-
-
-def test_reify_cache_is_per_instance(capsys):
-    sth = SomethingThatUsesReify()
-    other = SomethingThatUsesReify()
-    assert sth.computo_ergo_sum == 4
-    sth.computo_ergo_sum = 5
-    assert other.computo_ergo_sum == 4
-    assert sth.computations == 1
-    assert other.computations == 1
 
 
 def test_format_cmd():
