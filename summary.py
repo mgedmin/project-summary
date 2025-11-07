@@ -1378,7 +1378,7 @@ def get_report_pages(config: Configuration) -> Pages:
             NameColumn(width='15%'),
             GitHubActionsColumn(width='15%'),
             *(JenkinsColumn(job, width='15%') for job in config.jenkins_jobs),
-            AppveyorColumn(width="15%"),
+            *(AppveyorColumn(width="15%") for a in [config.appveyor_account] if a),
             CoverallsColumn(width="15%"),
             PypiStatsColumn(width='5%', align='right'),
             IssuesColumn(width="5%", align='right'),
