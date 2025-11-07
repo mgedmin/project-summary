@@ -29,8 +29,6 @@ setup(
         'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Operating System :: POSIX',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3.12',
@@ -40,7 +38,7 @@ setup(
         'Programming Language :: Python :: Implementation :: PyPy',
         'Private :: Do Not Upload To PyPI',  # it rejects unknown classifiers ;)
     ],
-    python_requires='>= 3.8',
+    python_requires='>= 3.10',
     license='GPL v2 or v3',
 
     py_modules=['summary'],
