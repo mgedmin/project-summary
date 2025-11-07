@@ -76,19 +76,19 @@ def format_cmd(cmd: Sequence[str], cwd: str | None = None) -> str:
         return ' '.join(cmd)
 
 
-def pipe(*cmd: str, **kwargs) -> str:
-    ignore_errors = kwargs.pop('ignore_errors', False)
-    log.debug('EXEC %s', format_cmd(cmd, kwargs.get('cwd')))
+def pipe(*cmd: str, ignore_errors: bool = False, **kwargs) -> str:
+    cwd = kwargs.get('cwd')
+    log.debug('EXEC %s', format_cmd(cmd, cwd))
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, **kwargs)
     stdout, stderr = p.communicate()
     if p.returncode and not ignore_errors:
         log.warning('%s produced a non-zero exit code: %d',
-                    format_cmd(cmd, kwargs.get('cwd')),
+                    format_cmd(cmd, cwd),
                     p.returncode)
     if stderr and not ignore_errors:
         log.log(logging.WARNING if p.returncode else logging.INFO,
                 '%s produced output on stderr:\n%s',
-                format_cmd(cmd, kwargs.get('cwd')),
+                format_cmd(cmd, cwd),
                 stderr.decode('UTF-8', 'replace'))
     return stdout.decode('UTF-8', 'replace')
 
