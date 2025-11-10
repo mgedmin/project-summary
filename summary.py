@@ -71,7 +71,7 @@ def collect(fn: Callable[..., Iterable[T]]) -> Callable[..., list[T]]:
 
 def format_cmd(cmd: Sequence[str], cwd: str | None = None) -> str:
     if cwd:
-        return 'cd %s && %s' % (cwd, ' '.join(cmd))
+        return f"cd {cwd} && {' '.join(cmd)}"
     else:
         return ' '.join(cmd)
 
@@ -108,7 +108,7 @@ def to_seconds(value: str) -> int:
                 prefix = s.removesuffix(suffix)
                 if prefix.isdigit():
                     return int(prefix) * multiplier
-    raise ValueError('bad time: %s' % value)
+    raise ValueError(f'bad time: {value}')
 
 
 #
@@ -311,14 +311,13 @@ def github_request(url: str, session: requests.Session) -> requests.Response:
 
 
 def github_request_list(url: str, session: requests.Session, batch_size: int = 100) -> list[dict]:
-    res = github_request('%s?per_page=%d' % (url, batch_size), session)
+    res = github_request(f'{url}?per_page={batch_size}', session)
     result = res.json()
     assert isinstance(result, list), result
     for page in itertools.count(2):
         if 'rel="next"' not in res.headers.get('Link', ''):
             break
-        res = github_request('%s?per_page=%d&page=%d' % (url, batch_size, page),
-                             session)
+        res = github_request(f'{url}?per_page={batch_size}&page={page}', session)
         batch = res.json()
         assert isinstance(batch, list), (page, batch)
         result.extend(batch)
@@ -416,7 +415,7 @@ def get_date_of_tag(repo_path: str, tag: str) -> str:
 
 
 def get_pending_commits(repo_path: str, last_tag: str, branch: str = 'master') -> list[str]:
-    return pipe("git", "log", "--oneline", "{}..origin/{}".format(last_tag, branch),
+    return pipe("git", "log", "--oneline", f"{last_tag}..origin/{branch}",
                 cwd=repo_path).splitlines()
 
 
@@ -546,7 +545,7 @@ class Project:
 
     @cached_property
     def pypi_url(self) -> str:
-        return 'https://pypi.org/project/{name}/'.format(name=self.pypi_name)
+        return f'https://pypi.org/project/{self.pypi_name}/'
 
     @cached_property
     def jenkins_job(self) -> str:
@@ -754,7 +753,7 @@ class Project:
     def issues_url(self) -> str | None:
         if not self.is_on_github:
             return None
-        return '{base}/issues'.format(base=self.url)
+        return f'{self.url}/issues'
 
     @cached_property
     def open_pulls_count(self) -> int:
@@ -768,7 +767,7 @@ class Project:
     def pulls_url(self) -> str | None:
         if not self.is_on_github:
             return None
-        return '{base}/pulls'.format(base=self.url)
+        return f'{self.url}/pulls'
 
     @cached_property
     def pypistats_url(self) -> str:
@@ -875,7 +874,7 @@ def html(tag: str | None, body: str | None = '', **kw: str | None) -> markupsafe
                     for name, value in kw.items() if value is not None)
     if tag in ('img', 'link', 'br', 'hr', 'meta', 'col'):
         assert not body
-        return markupsafe.Markup(f'<{tag}%s>' % attrs)
+        return markupsafe.Markup(f'<{tag}{attrs}>')
     return markupsafe.Markup(f'<{tag}{attrs}>{markupsafe.escape(body)}</{tag}>')
 
 
@@ -949,7 +948,7 @@ class Page:
                 break
         else:
             expr = ' || '.join(f'idx == {n}' for n in cols)
-        return markupsafe.Markup(JS('''
+        return markupsafe.Markup(JS(f'''
           onRenderHeader: function(idx, config, table) {{
             // move the sort indicator to the left for right-aligned columns
             if ({expr}) {{
@@ -957,7 +956,7 @@ class Page:
               $this.find('div').prepend($this.find('i'));
             }}
           }}{comma}
-        ''').format(expr=expr, comma=comma))
+        '''))
 
 
 def strip_leading_newline_and_trailing_spaces(rules: str) -> str:
@@ -1591,7 +1590,7 @@ def pluralize(number: int, noun: str) -> str:
     if number == 1:
         assert noun.endswith('s')
         noun = noun[:-1]  # poor Englishman's i18n
-    return '{} {}'.format(number, noun)
+    return f'{number} {noun}'
 
 
 def main() -> None:
@@ -1657,11 +1656,11 @@ def main() -> None:
             if args.symlink_assets:
                 symlink_assets(args.output_file)
         except (httpx.HTTPError, requests.HTTPError) as e:
-            sys.exit("HTTP error: %s" % e)
+            sys.exit(f"HTTP error: {e}")
         except requests.ConnectionError as e:
-            sys.exit("Network error: %s" % e)
+            sys.exit(f"Network error: {e}")
         except GitHubError as e:
-            sys.exit("GitHub error: %s" % e)
+            sys.exit(f"GitHub error: {e}")
         except Exception:
             # if I let CPython print the exception, it'll ignore all of
             # my extra information stuffed into linecache :/
