@@ -42,6 +42,7 @@ import markupsafe
 import pypistats
 import requests
 import requests_cache
+import yaml
 from requests_cache.backends.sqlite import SQLiteDict
 
 
@@ -120,6 +121,12 @@ class JenkinsJobConfig(NamedTuple):
     title: str = ''
 
 
+class GHAMatrixConfig(NamedTuple):
+    title: str
+    value: str
+    path: str
+
+
 class Configuration(object):
 
     _defaults = '''
@@ -132,6 +139,7 @@ class Configuration(object):
         pull = False
         gha-workflow-name = build
         gha-workflow-filename = build.yml
+        gha-matrix =
         appveyor-account =
         jenkins-url =
         jenkins-jobs = {name}
@@ -174,6 +182,14 @@ class Configuration(object):
     @cached_property
     def gha_workflow_filename(self) -> str:
         return self._config.get('project-summary', 'gha-workflow-filename')
+
+    @cached_property
+    def gha_matrix(self) -> list[GHAMatrixConfig]:
+        return [
+            GHAMatrixConfig(*col.split(None, 2))
+            for col in self._config.get('project-summary', 'gha-matrix').splitlines()
+            if col.strip()
+        ] if self.gha_workflow_filename else []
 
     @cached_property
     def appveyor_account(self) -> str:
@@ -590,6 +606,30 @@ class Project:
         res = self._http_get(self.github_actions_image_url)
         # We could extract gha_workflow_name from the workflow file itself.
         return self._parse_svg_text(res.text, skip_words={self.config.gha_workflow_name})
+
+    @cached_property
+    def github_actions_yaml(self) -> dict | None:
+        if not self.uses_github_actions:
+            return None
+        with pathlib.Path(
+            self.working_tree,
+            '.github',
+            'workflows',
+            self.config.gha_workflow_filename,
+        ).open() as fp:
+            return yaml.safe_load(fp)
+
+    def gha_query(self, path: str) -> list[str]:
+        node = self.github_actions_yaml
+        if not node:
+            return []
+        for step in path.split('.'):
+            if not isinstance(node, dict) or step not in node:
+                return []
+            node = node[step]
+        if not isinstance(node, list):
+            return []
+        return list(map(str, node))
 
     @cached_property
     def travis_image_url(self) -> str | None:
@@ -1074,7 +1114,7 @@ class Column:
         return {}
 
     def inner_html(self, project: Project) -> Markup:
-        raise NotImplementedError
+        raise NotImplementedError(f"{type(self).__name__} should implement .inner_html()")
 
 
 class NameColumn(Column):
@@ -1181,6 +1221,19 @@ class GitHubActionsColumn(StatusColumn):
             project.github_actions_image_url,
             project.github_actions_status,
         )
+
+
+class GHAMatrixColumn(StatusColumn):
+
+    def __init__(self, matrix: GHAMatrixConfig, **kwargs) -> None:
+        super().__init__(title=matrix.title, **kwargs)
+        self.title_narrow = matrix.title
+        self.matrix = matrix
+
+    def inner_html(self, project: Project) -> Markup:
+        yes = self.matrix.value in project.gha_query(self.matrix.path)
+        return html('span', class_='yes' if yes else 'no',
+                    body='+' if yes else '\u2212')
 
 
 class TravisColumn(StatusColumn):
@@ -1312,23 +1365,6 @@ class PythonSupportColumn(Column):
     css_rules = Column.css_rules + CSS('''
       #${page.name} th.eol,
       #${page.name} td.eol { background-color: #f5f5f5; }
-      #${page.name} span.no,
-      #${page.name} span.yes {
-        padding: 2px 4px 3px 4px;
-        font-family: DejaVu Sans, Verdana, Geneva, sans-serif;
-        font-size: 11px;
-        position: relative;
-        bottom: 2px;
-      }
-      #${page.name} span.no {
-        color: #888;
-      }
-      #${page.name} span.yes {
-        color: #fff;
-        background-color: #4c1;
-        text-shadow: 0px 1px 0px rgba(1, 1, 1, 0.3);
-        border-radius: 4px;
-      }
     ''')
 
     def __init__(self, ver: str, **kwargs) -> None:
@@ -1371,6 +1407,7 @@ def get_report_pages(config: Configuration) -> Pages:
         Page('Maintenance', [
             NameColumn(width='15%'),
             GitHubActionsColumn(width='15%'),
+            *(GHAMatrixColumn(mc, width='15%') for mc in config.gha_matrix),
             *(JenkinsColumn(job, width='15%') for job in config.jenkins_jobs),
             *(AppveyorColumn(width="15%") for a in [config.appveyor_account] if a),
             CoverallsColumn(width="15%"),
@@ -1404,6 +1441,23 @@ template = Template('''\
       .tablesorter-icon { color: #ddd; }
       .tablesorter-header { cursor: default; }
       .invisible { visibility: hidden; }
+      span.no,
+      span.yes {
+        padding: 2px 4px 3px 4px;
+        font-family: DejaVu Sans, Verdana, Geneva, sans-serif;
+        font-size: 11px;
+        position: relative;
+        bottom: 2px;
+      }
+      span.no {
+        color: #888;
+      }
+      span.yes {
+        color: #fff;
+        background-color: #4c1;
+        text-shadow: 0px 1px 0px rgba(1, 1, 1, 0.3);
+        border-radius: 4px;
+      }
       ${report_pages.stylesheet().strip()}
       footer { padding-top: 16px; padding-bottom: 16px; text-align: center; color: #999; }
 

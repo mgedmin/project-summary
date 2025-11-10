@@ -48,6 +48,7 @@ setup(
         'mako',
         'markupsafe',
         'pypistats >= 0.13',
+        'pyyaml',
         'requests',
         'requests-cache >= 1.0',
     ],

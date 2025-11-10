@@ -26,6 +26,8 @@ from summary import (
     CoverallsColumn,
     DataColumn,
     DateColumn,
+    GHAMatrixColumn,
+    GHAMatrixConfig,
     GitHubActionsColumn,
     GitHubError,
     GitHubRateLimitError,
@@ -954,6 +956,58 @@ def test_Project_github_actions_status_with_github_actions(project, session):
     assert project.github_actions_status == 'passing'
 
 
+def test_Project_github_actions_yaml_no_github_actions(project):
+    project.uses_github_actions = False
+    assert project.github_actions_yaml is None
+
+
+def test_Project_github_actions_yaml_with_github_actions(tmp_path, project):
+    tmp_path.joinpath('.github', 'workflows').mkdir(parents=True)
+    tmp_path.joinpath('.github', 'workflows', 'build.yml').write_text(textwrap.dedent('''
+        env:
+          HELLO: world
+    '''.lstrip('\n')))
+    project.uses_github_actions = True
+    assert project.github_actions_yaml == dict(env=dict(HELLO='world'))
+
+
+def test_Project_gha_query(project):
+    project.github_actions_yaml = None
+    assert project.gha_query('jobs.build.strategy.matrix.os') == []
+
+    project.github_actions_yaml = {"jobs": {}}
+    assert project.gha_query('jobs.build.strategy.matrix.os') == []
+
+    project.github_actions_yaml = {
+        "jobs": {
+            "build": {
+                "strategy": {
+                    "matrix": {
+                        "os": "ubuntu-latest",
+                    }
+                }
+            }
+        }
+    }
+    assert project.gha_query('jobs.build.strategy.matrix.os') == []
+
+    project.github_actions_yaml = {
+        "jobs": {
+            "build": {
+                "strategy": {
+                    "matrix": {
+                        "os": [
+                            "ubuntu-latest",
+                            "windows-latest",
+                        ]
+                    }
+                }
+            }
+        }
+    }
+    assert project.gha_query('jobs.build.strategy.matrix.os') == ["ubuntu-latest", "windows-latest"]
+
+
 def test_Project_travis_urls_no_travis(project):
     assert project.travis_image_url is None
     assert project.travis_url is None
@@ -1712,6 +1766,21 @@ def test_GitHubActionsColumn_get_status():
     )
     column = GitHubActionsColumn()
     assert column.get_status(project) == ('/status', '/status.svg', 'unknown')
+
+
+def test_GHAMAtrixColumn_inner_html():
+    project = FakeProject(
+        gha_query=lambda p: ["ubuntu-latest"]
+    )
+    column = GHAMatrixColumn(
+        GHAMatrixConfig(
+            "Windows", "windows-latest", "jobs.build.strategy.matrix.os"
+        )
+    )
+    assert column.inner_html(project) == (
+        '<span class="no">\u2212</span>'
+    )
+    assert isinstance(column.inner_html(project), markupsafe.Markup)
 
 
 def test_TravisColumn_get_status():
