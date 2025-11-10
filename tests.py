@@ -1947,7 +1947,7 @@ def test_main_warn_output_file_ignored(tmp_path, monkeypatch, capsys):
         'summary', '-o', 'output.txt',
     ])
     summary.main()
-    assert '--output-file ignored' in capsys.readouterr().out
+    assert '--output-file ignored' in capsys.readouterr().err
 
 
 def _raise(exc):

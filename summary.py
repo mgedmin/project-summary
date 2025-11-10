@@ -1669,7 +1669,7 @@ def main() -> None:
             sys.exit(1)
     else:
         if args.output_file:
-            print("warning: --output-file ignored in non-HTML mode")
+            print("warning: --output-file ignored in non-HTML mode", file=sys.stderr)
         print_report(projects, args.verbose)
 
 
