@@ -42,15 +42,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-
-      - name: Pip cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('tox.ini', 'setup.py') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-${{ matrix.python-version }}-
-            ${{ runner.os }}-pip-
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            tox.ini
 
       - name: Install dependencies
         run: |
@@ -89,7 +84,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ matrix.toxenv }}-${{ hashFiles('tox.ini', 'setup.py') }}
+          key: ${{ runner.os }}-pip-${{ matrix.toxenv }}-${{ hashFiles('tox.ini', 'pyproject.toml') }}
           restore-keys: |
             ${{ runner.os }}-pip-${{ matrix.toxenv }}-
             ${{ runner.os }}-pip-

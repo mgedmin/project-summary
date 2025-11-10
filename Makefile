@@ -41,7 +41,7 @@ tags:   bin/summary
 bin:
 	mkdir bin
 
-bin/summary: setup.py requirements.txt | bin/pip
+bin/summary: pyproject.toml requirements.txt | bin/pip
 	bin/pip install -U pip
 	bin/pip install -e . -c requirements.txt
 	ln -sfr .venv/bin/summary bin/

@@ -1,0 +1,49 @@
+[project]
+name = "project-summary"
+authors = [
+    {name = "Marius Gedminas", email = "marius@gedmin.as"},
+]
+description = "Script to generate a summary page for all my projects"
+readme = "README.rst"
+classifiers = [
+        "Development Status :: 5 - Production/Stable",
+        "Environment :: Console",
+        "Intended Audience :: Developers",
+        "Operating System :: POSIX",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
+        "Programming Language :: Python :: Implementation :: CPython",
+        "Programming Language :: Python :: Implementation :: PyPy",
+        "Private :: Do Not Upload To PyPI",
+]
+license = "GPL-3.0-or-later"
+requires-python = ">=3.10"
+dependencies = [
+    'arrow',
+    'mako',
+    'markupsafe',
+    'pypistats >= 0.13',
+    'pyyaml',
+    'requests',
+    'requests-cache >= 1.0',
+]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/mgedmin/project-summary"
+
+[project.scripts]
+summary = "summary:main"
+
+[build-system]
+requires = ["setuptools >= 77.0.3"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["summary"]
+
+[tool.setuptools.dynamic]
+version = {attr = "summary.__version__"}
