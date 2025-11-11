@@ -17,3 +17,6 @@ recursive-include assets *.woff2
 
 # added by check-manifest
 include *.txt
+
+# added by check-manifest
+include *.lock
