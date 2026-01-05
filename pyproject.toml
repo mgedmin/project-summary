@@ -25,7 +25,7 @@ dependencies = [
     'arrow',
     'mako',
     'markupsafe',
-    'pypistats >= 0.13',
+    'pypistats >= 0.13, < 1.12',
     'pyyaml',
     'requests',
     'requests-cache >= 1.0',
