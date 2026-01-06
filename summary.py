@@ -236,7 +236,7 @@ class Configuration(object):
 class Cache:
 
     def get(self, key: str, valid_for: datetime.timedelta, if_missing=lambda: None) -> Any:
-        now = datetime.datetime.utcnow()
+        now = datetime.datetime.now(datetime.timezone.utc)
         value, expires = self._get(key)
         if expires is None or expires < now:
             value = if_missing()
