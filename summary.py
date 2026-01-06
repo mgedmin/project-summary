@@ -35,25 +35,24 @@ from typing import (
 from xml.etree import ElementTree
 
 import arrow
-import httpx
 import mako.exceptions
 import mako.template
 import markupsafe
 import pypistats
 import requests
 import requests_cache
+import urllib3
 import yaml
 from requests_cache.backends.sqlite import SQLiteDict
 
 
-# Yes, there are imports of both httpx and requests.  I use requests because
-# requests_cache exists.  I need httpx because pypistats uses httpx and I want
-# to catch exceptions.  I would like to switch to httpx everywhere, once I find
-# a replacement for requests_cache.
+# Yes, there are imports of both urllib3 and requests.  I use requests because
+# requests_cache exists.  I need urllib3 because pypistats uses urllib3 and I
+# want to catch exceptions.
 
 
 __author__ = 'Marius Gedminas <marius@gedmin.as>'
-__version__ = '0.19.0'
+__version__ = '0.20.0'
 
 
 log = logging.getLogger('project-summary')
@@ -825,10 +824,7 @@ class Project:
                 if_missing=lambda:
                     json.loads(pypistats.recent(self.pypi_name, format='json'))
             )
-        except httpx.HTTPStatusError as e:
-            log.warning('%s error for %s', e.response.status_code, self.pypistats_url)
-            return None
-        except httpx.HTTPError as e:
+        except urllib3.exceptions.HTTPError as e:
             log.warning(e)
             return None
         else:
@@ -1709,7 +1705,7 @@ def main() -> None:
             print_html_report(projects, config, args.output_file)
             if args.symlink_assets:
                 symlink_assets(args.output_file)
-        except (httpx.HTTPError, requests.HTTPError) as e:
+        except (urllib3.exceptions.HTTPError, requests.HTTPError) as e:
             sys.exit(f"HTTP error: {e}")
         except requests.ConnectionError as e:
             sys.exit(f"Network error: {e}")
