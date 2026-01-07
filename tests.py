@@ -372,6 +372,14 @@ def test_Cache_get_expired(request, cache):
     assert cache.get('xyzzy', valid_for=valid_for, if_missing=lambda: -1) == -1
 
 
+def test_SqliteCache_get_from_old_cache(request, sqlite_cache):
+    cache = sqlite_cache
+    # prime the cache with some datetime value in the past, with no tzinfo
+    cache._set('xyzzy', 42, datetime.datetime(2025, 10, 11, 12, 13, 14))
+    valid_for = datetime.timedelta(1)
+    assert cache.get('xyzzy', valid_for=valid_for, if_missing=lambda: -1) == -1
+
+
 class MockSession:
 
     def __init__(self, prototype=None):
