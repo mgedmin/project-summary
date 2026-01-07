@@ -272,6 +272,9 @@ class SQLiteCache(Cache):
         value, expires = self.cached.get(key, (None, None))
         if expires is not None:
             expires = datetime.datetime.fromisoformat(expires)
+            if expires.tzinfo is None:
+                # old caches used UTC timestamps stored without timezone offset
+                expires = expires.replace(tzinfo=datetime.timezone.utc)
         return (value, expires)
 
     def _set(self, key, value, expires):
