@@ -3,14 +3,7 @@ pypackage = project_summary
 .PHONY: all
 all: bin/pip bin/summary        ##: create a local virtualenv with bin/summary
 
-HELP_INDENT = ""
-HELP_PREFIX = "make "
-HELP_WIDTH = 24
-HELP_SEPARATOR = " - "
-
-.PHONY: help
-help:                                   ##: describe available make targets
-	@grep -E -e '^[a-zA-Z_-]+:.*?##: .*$$' -e '^##:' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":[^#]*##: "}; /^##:/ {printf "\n"} /^[^#]/ {printf "%s\033[36m%-$(HELP_WIDTH)s\033[0m%s%s\n", $(HELP_INDENT), $(HELP_PREFIX) $$1, $(HELP_SEPARATOR), $$2}'
+include help.mk
 
 .PHONY: test
 test:                                   ##: run tests
