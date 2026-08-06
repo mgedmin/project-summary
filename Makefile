@@ -28,7 +28,9 @@ clean:                                  ##: remove build artifacts
 update-all-packages: bin/pip            ##: upgrade all packages to latest versions
 	bin/pip install -U pip setuptools wheel
 	bin/pip install -U --upgrade-strategy=eager -e .
-	make update-requirements
+	$(MAKE) update-requirements
+	$(MAKE)
+	uv sync --upgrade
 
 .PHONY: update-requirements
 update-requirements: bin/pip            ##: regenerate requirements.txt from currently installed versions
