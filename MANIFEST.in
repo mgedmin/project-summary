@@ -20,3 +20,6 @@ include *.txt
 
 # added by check-manifest
 include *.lock
+
+# added by check-manifest
+include *.mk
