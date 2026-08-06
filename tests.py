@@ -9,6 +9,7 @@ import traceback
 
 import markupsafe
 import pypistats
+import pypistats._cache  # type: ignore
 import pytest
 import requests
 import urllib3
