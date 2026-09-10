@@ -28,9 +28,6 @@ jobs:
           - "3.12"
           - "3.13"
           - "3.14"
-        include:
-          - python-version: "pypy3.10"
-            optional: true
 
     steps:
       - name: Git clone
